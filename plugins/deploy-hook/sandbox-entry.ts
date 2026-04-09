@@ -58,11 +58,30 @@ async function doExport(ctx: PluginContext): Promise<{ success: boolean; size?: 
 async function triggerBuild(ctx: PluginContext, hookUrl: string, theme: string): Promise<{ success: boolean; error?: string }> {
 	if (!hookUrl) return { success: false, error: "No deploy hook URL. Run setup.mjs first." };
 	if (!ctx.http) return { success: false, error: "Network not available" };
+
+	// First update the THEME env var on the trigger
+	const cfToken = (await ctx.kv.get<string>("settings:cfToken")) ?? "";
+	const triggerUrl = hookUrl.replace(/\/builds$/, "");
+
+	if (cfToken) {
+		try {
+			await ctx.http.fetch(`${triggerUrl}/environment_variables`, {
+				method: "PATCH",
+				headers: { "Authorization": `Bearer ${cfToken}`, "Content-Type": "application/json" },
+				body: JSON.stringify({ THEME: { is_secret: false, value: theme } }),
+			});
+		} catch {}
+	}
+
+	// Trigger the build
 	try {
+		const headers: Record<string, string> = { "Content-Type": "application/json" };
+		if (cfToken) headers["Authorization"] = `Bearer ${cfToken}`;
+
 		const res = await ctx.http.fetch(hookUrl, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ env: { THEME: theme } }),
+			headers,
+			body: JSON.stringify({ branch: "main" }),
 		});
 		await ctx.kv.set("state:lastBuild", new Date().toISOString());
 		await ctx.kv.set("state:lastStatus", res.ok ? `deployed (${theme})` : `failed (${res.status})`);
