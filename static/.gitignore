@@ -5,4 +5,3 @@ generated/
 public/fonts/
 .wrangler/
 .tmp-*/
-package-lock.json
