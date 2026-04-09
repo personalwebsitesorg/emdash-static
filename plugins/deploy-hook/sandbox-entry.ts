@@ -1,112 +1,38 @@
-/**
- * Deploy Hook Plugin — Admin UI
- *
- * Theme picker + Export & Deploy button.
- * Exports content to R2, then triggers the static builder deploy hook
- * with the chosen theme. The deploy hook URL is pre-configured by setup.mjs.
- */
-
 import { definePlugin } from "emdash";
 import type { PluginContext } from "emdash";
 
-const THEMES = [
+var THEMES = [
 	{ label: "Professional", value: "professional" },
 	{ label: "Editorial", value: "editorial" },
 	{ label: "Minimal", value: "minimal" },
 	{ label: "Bold", value: "bold" },
 ];
 
-// ── Helpers ──
+async function buildAdminPage(ctx: PluginContext) {
+	var hookUrl = "";
+	var theme = "professional";
+	var lastStatus = "";
+	var lastBuild = "";
 
-function randomKey() {
-	const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-	let result = "";
-	for (let i = 0; i < 32; i++) result += chars[Math.floor(Math.random() * chars.length)];
-	return result;
-}
-
-async function getSettings(ctx: PluginContext) {
-	return {
-		hookUrl: (await ctx.kv.get<string>("settings:hookUrl")) ?? "",
-		theme: (await ctx.kv.get<string>("settings:theme")) ?? "professional",
-		lastExport: (await ctx.kv.get<string>("state:lastExport")) ?? "",
-		lastBuild: (await ctx.kv.get<string>("state:lastBuild")) ?? "",
-		lastStatus: (await ctx.kv.get<string>("state:lastStatus")) ?? "",
-	};
-}
-
-async function doExport(ctx: PluginContext): Promise<{ success: boolean; size?: number; error?: string }> {
-	if (!ctx.http) return { success: false, error: "Network not available" };
 	try {
-		const key = randomKey();
-		await ctx.kv.set("exportKey", key);
-		const res = await ctx.http.fetch(ctx.url("/api/static-export"), {
-			method: "POST",
-			headers: { "X-Export-Key": key },
-		});
-		const data = (await res.json()) as any;
-		if (res.ok && data.success) {
-			await ctx.kv.set("state:lastExport", new Date().toISOString());
-			return { success: true, size: data.size };
-		}
-		return { success: false, error: data.error || `HTTP ${res.status}` };
-	} catch (err) {
-		return { success: false, error: err instanceof Error ? err.message : String(err) };
-	}
-}
+		hookUrl = (await ctx.kv.get("settings:hookUrl")) || "";
+		theme = (await ctx.kv.get("settings:theme")) || "professional";
+		lastStatus = (await ctx.kv.get("state:lastStatus")) || "";
+		lastBuild = (await ctx.kv.get("state:lastBuild")) || "";
+	} catch (_e) {}
 
-async function triggerBuild(ctx: PluginContext, hookUrl: string, theme: string): Promise<{ success: boolean; error?: string }> {
-	if (!hookUrl) return { success: false, error: "No deploy hook URL. Run setup.mjs first." };
-	if (!ctx.http) return { success: false, error: "Network not available" };
-
-	// First update the THEME env var on the trigger
-	const cfToken = (await ctx.kv.get<string>("settings:cfToken")) ?? "";
-	const triggerUrl = hookUrl.replace(/\/builds$/, "");
-
-	if (cfToken) {
-		try {
-			await ctx.http.fetch(`${triggerUrl}/environment_variables`, {
-				method: "PATCH",
-				headers: { "Authorization": `Bearer ${cfToken}`, "Content-Type": "application/json" },
-				body: JSON.stringify({ THEME: { is_secret: false, value: theme } }),
-			});
-		} catch {}
-	}
-
-	// Trigger the build
-	try {
-		const headers: Record<string, string> = { "Content-Type": "application/json" };
-		if (cfToken) headers["Authorization"] = `Bearer ${cfToken}`;
-
-		const res = await ctx.http.fetch(hookUrl, {
-			method: "POST",
-			headers,
-			body: JSON.stringify({ branch: "main" }),
-		});
-		await ctx.kv.set("state:lastBuild", new Date().toISOString());
-		await ctx.kv.set("state:lastStatus", res.ok ? `deployed (${theme})` : `failed (${res.status})`);
-		return res.ok ? { success: true } : { success: false, error: `HTTP ${res.status}` };
-	} catch (err) {
-		const msg = err instanceof Error ? err.message : String(err);
-		await ctx.kv.set("state:lastStatus", `error: ${msg}`);
-		return { success: false, error: msg };
-	}
-}
-
-// ── Admin Page ──
-
-async function buildPage(ctx: PluginContext) {
-	const { hookUrl, theme, lastExport, lastBuild, lastStatus } = await getSettings(ctx);
-	const blocks: unknown[] = [{ type: "header", text: "Static Site" }];
+	var blocks: unknown[] = [{ type: "header", text: "Static Site" }];
 
 	if (!hookUrl) {
 		blocks.push({
 			type: "banner",
 			title: "Deploy hook not configured",
-			description: "Run setup.mjs to auto-configure, or paste the deploy hook URL below.",
+			description: "Run setup.mjs or paste the deploy hook URL and pick a theme below.",
 			variant: "default",
-		}, {
-			type: "form", block_id: "setup",
+		});
+		blocks.push({
+			type: "form",
+			block_id: "setup",
 			fields: [
 				{ type: "text_input", action_id: "hookUrl", label: "Deploy Hook URL", placeholder: "https://api.cloudflare.com/..." },
 				{ type: "select", action_id: "theme", label: "Theme", options: THEMES, initial_value: theme },
@@ -117,98 +43,123 @@ async function buildPage(ctx: PluginContext) {
 	}
 
 	// Status
+	var fields: { label: string; value: string }[] = [
+		{ label: "Status", value: lastStatus || "Ready" },
+		{ label: "Theme", value: theme },
+	];
+	if (lastBuild) fields.push({ label: "Last Deploy", value: lastBuild });
+	blocks.push({ type: "fields", fields: fields });
+
+	// Deploy button
+	blocks.push({ type: "context", text: "Build and deploy the static site with the " + theme + " theme." });
 	blocks.push({
-		type: "fields",
-		fields: [
-			{ label: "Status", value: lastStatus || "Ready" },
-			{ label: "Theme", value: theme },
-			...(lastExport ? [{ label: "Last Export", value: new Date(lastExport).toLocaleString() }] : []),
-			...(lastBuild ? [{ label: "Last Deploy", value: new Date(lastBuild).toLocaleString() }] : []),
+		type: "actions",
+		elements: [
+			{ type: "button", label: "Deploy", action_id: "deploy", style: "primary" },
 		],
 	});
 
-	// Buttons
-	blocks.push(
-		{ type: "context", text: `Export to R2 → rebuild static site with "${theme}" theme.` },
-		{
-			type: "actions",
-			elements: [
-				{ type: "button", label: "Export & Deploy", action_id: "export_and_deploy", style: "primary" },
-				{ type: "button", label: "Export to R2", action_id: "export_only", style: "default" },
-				{ type: "button", label: "Deploy Only", action_id: "deploy_only", style: "default" },
-			],
-		},
-	);
-
 	// Settings
-	blocks.push(
-		{ type: "divider" },
-		{ type: "header", text: "Settings" },
-		{
-			type: "form", block_id: "settings",
-			fields: [
-				{ type: "text_input", action_id: "hookUrl", label: "Deploy Hook URL", initial_value: hookUrl },
-				{ type: "select", action_id: "theme", label: "Theme", options: THEMES, initial_value: theme },
-			],
-			submit: { label: "Update", action_id: "save_settings" },
-		},
-	);
+	blocks.push({ type: "divider" });
+	blocks.push({ type: "header", text: "Settings" });
+	blocks.push({
+		type: "form",
+		block_id: "settings",
+		fields: [
+			{ type: "text_input", action_id: "hookUrl", label: "Deploy Hook URL", initial_value: hookUrl },
+			{ type: "select", action_id: "theme", label: "Theme", options: THEMES, initial_value: theme },
+		],
+		submit: { label: "Update", action_id: "save_settings" },
+	});
 
 	return blocks;
 }
 
-// ── Plugin ──
+async function doDeploy(ctx: PluginContext) {
+	var hookUrl = (await ctx.kv.get("settings:hookUrl")) || "";
+	var theme = (await ctx.kv.get("settings:theme")) || "professional";
+	var cfToken = (await ctx.kv.get("settings:cfToken")) || "";
+
+	if (!hookUrl) return { success: false, error: "No deploy hook URL" };
+	if (!ctx.http) return { success: false, error: "Network not available" };
+
+	try {
+		// Update THEME env var on the trigger
+		if (cfToken) {
+			var triggerUrl = hookUrl.replace(/\/builds$/, "");
+			await ctx.http.fetch(triggerUrl + "/environment_variables", {
+				method: "PATCH",
+				headers: { "Authorization": "Bearer " + cfToken, "Content-Type": "application/json" },
+				body: JSON.stringify({ THEME: { is_secret: false, value: theme } }),
+			});
+		}
+
+		// Trigger build
+		var headers: Record<string, string> = { "Content-Type": "application/json" };
+		if (cfToken) headers["Authorization"] = "Bearer " + cfToken;
+
+		var res = await ctx.http.fetch(hookUrl, {
+			method: "POST",
+			headers: headers,
+			body: JSON.stringify({ branch: "main" }),
+		});
+
+		await ctx.kv.set("state:lastBuild", new Date().toISOString());
+
+		if (res.ok) {
+			await ctx.kv.set("state:lastStatus", "deploying (" + theme + ")...");
+			return { success: true, theme: theme };
+		}
+		await ctx.kv.set("state:lastStatus", "deploy failed (HTTP " + res.status + ")");
+		return { success: false, error: "HTTP " + res.status };
+	} catch (err) {
+		var msg = err instanceof Error ? err.message : String(err);
+		await ctx.kv.set("state:lastStatus", "deploy error: " + msg);
+		return { success: false, error: msg };
+	}
+}
 
 export default definePlugin({
 	routes: {
 		admin: {
-			handler: async (routeCtx: { input: unknown }, ctx: PluginContext) => {
-				const i = (routeCtx.input || {}) as { type?: string; action_id?: string; values?: Record<string, unknown> };
+			handler: async (
+				routeCtx: { input: unknown; request: { url: string } },
+				ctx: PluginContext,
+			) => {
+				var interaction = routeCtx.input as {
+					type: string;
+					action_id?: string;
+					values?: Record<string, unknown>;
+				};
 
-				if (!i.type || i.type === "page_load") return { blocks: await buildPage(ctx) };
-
-				if (i.type === "form_submit" && i.action_id === "save_settings") {
-					const v = i.values ?? {};
-					if (typeof v.hookUrl === "string" && v.hookUrl) await ctx.kv.set("settings:hookUrl", v.hookUrl);
-					if (typeof v.theme === "string" && v.theme) await ctx.kv.set("settings:theme", v.theme);
-					return { blocks: await buildPage(ctx), toast: { message: "Settings saved", type: "success" } };
+				if (interaction.type === "page_load") {
+					return { blocks: await buildAdminPage(ctx) };
 				}
 
-				if (i.type === "block_action" && i.action_id === "export_and_deploy") {
-					const exp = await doExport(ctx);
-					if (!exp.success) return { blocks: await buildPage(ctx), toast: { message: `Export failed: ${exp.error}`, type: "error" } };
-
-					const { hookUrl, theme } = await getSettings(ctx);
-					const build = await triggerBuild(ctx, hookUrl, theme);
-					const sizeKB = exp.size ? ` (${(exp.size / 1024).toFixed(1)} KB)` : "";
+				if (interaction.type === "form_submit" && interaction.action_id === "save_settings") {
+					var values = interaction.values || {};
+					if (typeof values.hookUrl === "string" && values.hookUrl) await ctx.kv.set("settings:hookUrl", values.hookUrl);
+					if (typeof values.theme === "string" && values.theme) await ctx.kv.set("settings:theme", values.theme);
 					return {
-						blocks: await buildPage(ctx),
+						blocks: await buildAdminPage(ctx),
+						toast: { message: "Settings saved", type: "success" },
+					};
+				}
+
+				if (interaction.type === "block_action" && interaction.action_id === "deploy") {
+					var result = await doDeploy(ctx);
+					return {
+						blocks: await buildAdminPage(ctx),
 						toast: {
-							message: build.success ? `Exported${sizeKB} → deploying "${theme}"` : `Exported, but deploy failed: ${build.error}`,
-							type: build.success ? "success" : "error",
+							message: result.success
+								? "Build triggered! Deploying " + result.theme + " theme. Takes ~1 min."
+								: "Deploy failed: " + result.error,
+							type: result.success ? "success" : "error",
 						},
 					};
 				}
 
-				if (i.type === "block_action" && i.action_id === "export_only") {
-					const r = await doExport(ctx);
-					await ctx.kv.set("state:lastStatus", r.success ? `exported (${(r.size! / 1024).toFixed(1)} KB)` : `export failed`);
-					return {
-						blocks: await buildPage(ctx),
-						toast: { message: r.success ? `Exported (${(r.size! / 1024).toFixed(1)} KB)` : `Failed: ${r.error}`, type: r.success ? "success" : "error" },
-					};
-				}
-
-				if (i.type === "block_action" && i.action_id === "deploy_only") {
-					const { hookUrl, theme } = await getSettings(ctx);
-					const r = await triggerBuild(ctx, hookUrl, theme);
-					return {
-						blocks: await buildPage(ctx),
-						toast: { message: r.success ? `Deploying "${theme}"` : `Failed: ${r.error}`, type: r.success ? "success" : "error" },
-					};
-				}
-
-				return { blocks: await buildPage(ctx) };
+				return { blocks: await buildAdminPage(ctx) };
 			},
 		},
 	},
