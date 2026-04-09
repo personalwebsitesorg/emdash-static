@@ -163,9 +163,9 @@ export default definePlugin({
 	routes: {
 		admin: {
 			handler: async (routeCtx: { input: unknown }, ctx: PluginContext) => {
-				const i = routeCtx.input as { type: string; action_id?: string; values?: Record<string, unknown> };
+				const i = (routeCtx.input || {}) as { type?: string; action_id?: string; values?: Record<string, unknown> };
 
-				if (i.type === "page_load") return { blocks: await buildPage(ctx) };
+				if (!i.type || i.type === "page_load") return { blocks: await buildPage(ctx) };
 
 				if (i.type === "form_submit" && i.action_id === "save_settings") {
 					const v = i.values ?? {};
