@@ -1,0 +1,46 @@
+@import "../../shared/fancy-base.css";
+
+:root {
+  --bg: #f8f2eb;
+  --bg-2: #f2e8dc;
+  --surface: rgba(255, 255, 255, 0.86);
+  --surface-strong: rgba(255, 255, 255, 0.95);
+  --border: rgba(146, 98, 34, 0.2);
+  --text: #2f2115;
+  --text-muted: #69543d;
+  --text-soft: #8c7155;
+  --accent: #cc6b20;
+  --accent-2: #9f8d1e;
+  --accent-3: #d53f54;
+  --accent-text: #fffdf8;
+  --hero-glow-1: rgba(204, 107, 32, 0.2);
+  --hero-glow-2: rgba(213, 63, 84, 0.14);
+  --hero-title-gradient: linear-gradient(120deg, #a84d09, #b57916, #c73f52);
+  --font: "Manrope", system-ui, sans-serif;
+  --font-display: "Manrope", system-ui, sans-serif;
+  --post-columns: 3;
+  --radius: 18px;
+  --hero-max: 860px;
+}
+
+body::before {
+  opacity: 0.05;
+}
+
+.hero::before {
+  box-shadow: 0 20px 40px rgba(95, 62, 22, 0.12);
+}
+
+.post-grid--2col {
+  --post-columns: 2;
+}
+
+.header-nav a.nav-active {
+  color: #fffdf8;
+}
+
+@media (max-width: 1120px) {
+  .post-grid {
+    --post-columns: 2;
+  }
+}

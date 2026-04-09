@@ -1,0 +1,91 @@
+@import "../../shared/fancy-base.css";
+
+:root {
+  --bg: #f4f8ff;
+  --bg-2: #eaf0ff;
+  --surface: rgba(255, 255, 255, 0.8);
+  --surface-strong: rgba(255, 255, 255, 0.94);
+  --border: rgba(35, 79, 166, 0.18);
+  --text: #10254a;
+  --text-muted: #3b5f97;
+  --text-soft: #5f79a7;
+  --accent: #335dce;
+  --accent-2: #1498d4;
+  --accent-3: #6e55d8;
+  --accent-text: #f7fbff;
+  --hero-glow-1: rgba(51, 93, 206, 0.18);
+  --hero-glow-2: rgba(20, 152, 212, 0.14);
+  --hero-title-gradient: linear-gradient(118deg, #2244a3 10%, #117fb0 45%, #6345ce 92%);
+  --font: "Manrope", system-ui, sans-serif;
+  --font-display: "Manrope", system-ui, sans-serif;
+  --post-columns: 1;
+  --hero-max: 900px;
+  --hero-align: left;
+  --radius: 16px;
+}
+
+body::before {
+  opacity: 0.06;
+}
+
+.hero__avatar {
+  margin-left: 0;
+}
+
+.hero__actions {
+  justify-content: flex-start;
+}
+
+.hero__body {
+  margin-left: 0;
+  padding-left: 0;
+}
+
+.layout-with-sidebar {
+  grid-template-columns: 1fr;
+}
+
+.sidebar {
+  display: none;
+}
+
+.post-card {
+  border-radius: 14px;
+}
+
+.post-card__image-wrap {
+  display: none;
+}
+
+.post-card__placeholder,
+.post-card__badge,
+.post-card__excerpt {
+  display: none;
+}
+
+.post-card__body {
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.post-card__meta {
+  margin: 0;
+}
+
+.post-card__meta-dot {
+  display: none;
+}
+
+.post-card:hover {
+  transform: translateX(4px);
+}
+
+@media (max-width: 700px) {
+  .post-card__body {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}

@@ -1,0 +1,7 @@
+{
+	"name": "emdash-static",
+	"private": true,
+	"scripts": {
+		"setup": "node setup.mjs"
+	}
+}

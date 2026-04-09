@@ -1,0 +1,88 @@
+@import "../../shared/fancy-base.css";
+
+:root {
+  --bg: #081426;
+  --bg-2: #0d2238;
+  --surface: rgba(10, 25, 44, 0.82);
+  --surface-strong: rgba(12, 30, 52, 0.94);
+  --border: rgba(110, 165, 220, 0.22);
+  --text: #e9f4ff;
+  --text-muted: #b2cce5;
+  --text-soft: #89a8c7;
+  --accent: #4ea1ff;
+  --accent-2: #18c7c8;
+  --accent-3: #5a9be6;
+  --accent-text: #f6f8ff;
+  --font: "Manrope", "Segoe UI", sans-serif;
+  --font-display: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --hero-title-gradient: linear-gradient(120deg, #d8ecff 0%, #9fd8ff 60%, #87e8e9 100%);
+  --post-columns: 3;
+  --radius: 16px;
+}
+
+.hero {
+  --hero-max: 1120px;
+  border-bottom: 1px solid rgba(110, 165, 220, 0.2);
+  padding-bottom: 14px;
+  margin-bottom: 12px;
+}
+
+.hero__title {
+  text-shadow: 0 7px 20px rgba(23, 95, 170, 0.24);
+  letter-spacing: -0.015em;
+}
+
+.hero__tagline {
+  font-size: 1.03rem;
+}
+
+.hero__body {
+  max-width: 74ch;
+}
+
+.hero__actions .btn {
+  padding: 9px 18px;
+  font-size: 0.82rem;
+}
+
+.hero::before,
+.hero::after {
+  display: none;
+}
+
+.header-site-name {
+  font-family: var(--font);
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.header-nav a {
+  font-size: 0.78rem;
+  padding: 6px 11px;
+}
+
+.post-card {
+  box-shadow: 0 10px 22px rgba(6, 14, 27, 0.24);
+}
+
+.post-card__meta {
+  font-size: 0.68rem;
+}
+
+@media (min-width: 1460px) {
+  .post-grid {
+    --post-columns: 4;
+  }
+}
+
+@media (max-width: 1120px) {
+  .post-grid {
+    --post-columns: 2;
+  }
+}
+
+@media (max-width: 680px) {
+  .hero {
+    border-bottom: none;
+  }
+}

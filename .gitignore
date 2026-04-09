@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.astro/
+.wrangler/
+.env
+site.config.json
+cms/
+static/generated/
+static/public/fonts/
