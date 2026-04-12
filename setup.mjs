@@ -46,16 +46,49 @@ async function main() {
 		config.subdomain = res.result?.subdomain || "";
 	} catch {}
 
-	// ── Step 1: Create emdash CMS from latest template ──
-	console.log("\n  [1/7] Installing emdash CMS (latest from emdash-cms/templates)...");
+	// ── Step 1: Create emdash CMS from latest ──
+	console.log("\n  [1/7] Installing emdash CMS (latest)...");
 	if (!existsSync("cms/package.json")) {
+		var created = false;
+		// Try automated create-emdash (uses expect to answer interactive prompts)
 		try {
-			execSync("npx --yes giget@latest github:emdash-cms/templates/blog-cloudflare cms", { stdio: "pipe" });
-			// Remove pnpm-workspace.yaml (artifact from monorepo template)
-			try { execSync("rm -f cms/pnpm-workspace.yaml", { stdio: "pipe" }); } catch {}
-			console.log("         Downloaded blog-cloudflare template");
-		} catch (err) {
-			console.log("         giget failed, scaffolding manually...");
+			var expectScript = [
+				'set timeout 120',
+				'spawn npx --yes create-emdash@latest cms',
+				'expect "Project name?"',
+				'send "' + siteName + '-cms\\r"',
+				'expect "deploy?"',
+				'send "\\r"',
+				'expect "template?"',
+				'send "\\r"',
+				'expect "package manager?"',
+				'send "\\033\\[B\\r"',
+				'expect "dependencies?"',
+				'send "\\r"',
+				'expect eof',
+			].join("\n");
+			execSync("expect -c '" + expectScript.replace(/'/g, "'\\''") + "'", { stdio: "pipe", timeout: 180000 });
+			if (existsSync("cms/package.json")) {
+				// Remove monorepo artifact
+				try { execSync("rm -f cms/pnpm-workspace.yaml", { stdio: "pipe" }); } catch {}
+				created = true;
+				console.log("         Created via create-emdash (latest)");
+			}
+		} catch {}
+
+		// Fallback: download template directly via giget
+		if (!created) {
+			try {
+				execSync("npx --yes giget@latest github:emdash-cms/templates/blog-cloudflare cms", { stdio: "pipe" });
+				try { execSync("rm -f cms/pnpm-workspace.yaml", { stdio: "pipe" }); } catch {}
+				created = true;
+				console.log("         Downloaded blog-cloudflare template");
+			} catch {}
+		}
+
+		// Final fallback: manual scaffold
+		if (!created) {
+			console.log("         Scaffolding manually...");
 			scaffoldCms(siteName);
 		}
 		console.log("         Created cms/");
@@ -69,7 +102,7 @@ async function main() {
 	// Install emdash-static-export
 	const pkg = JSON.parse(readFileSync("cms/package.json", "utf8"));
 	if (!pkg.dependencies?.["emdash-static-export"]) {
-		execSync("npm install emdash-static-export@github:personalwebsitesorg/emdash-static-export", {
+		execSync("pnpm add emdash-static-export@github:personalwebsitesorg/emdash-static-export", {
 			cwd: resolve("cms"), stdio: "pipe",
 		});
 	}
@@ -131,8 +164,8 @@ async function main() {
 	// ── Step 5: Deploy CMS ──
 	console.log("  [5/7] Deploying CMS worker...\n");
 	try {
-		execSync("npm install", { cwd: resolve("cms"), stdio: "inherit", env: cfEnv });
-		execSync("npm run deploy", { cwd: resolve("cms"), stdio: "inherit", env: cfEnv });
+		execSync("pnpm install", { cwd: resolve("cms"), stdio: "inherit", env: cfEnv });
+		execSync("pnpm run deploy", { cwd: resolve("cms"), stdio: "inherit", env: cfEnv });
 	} catch {
 		console.error("\n  CMS deploy failed.");
 		process.exit(1);
@@ -269,6 +302,10 @@ async function main() {
 		// Write deploy hook URL to CMS D1
 		if (config.triggerUrl && config.d1Id) {
 			try {
+				// Create options table if it doesn't exist yet (migrations may not have run)
+				await cf("/accounts/" + accountId + "/d1/database/" + config.d1Id + "/query", apiToken, "POST", {
+					sql: 'CREATE TABLE IF NOT EXISTS "options" ("name" text primary key, "value" text not null)',
+				});
 				var hookJson = JSON.stringify(config.triggerUrl);
 				var themeJson = JSON.stringify(theme);
 				var tokenJson = JSON.stringify(apiToken);
@@ -280,7 +317,7 @@ async function main() {
 				});
 				console.log("         Deploy hook written to CMS database");
 			} catch (err) {
-				console.log("         Could not write to D1 (CMS may need first visit): " + err.message);
+				console.log("         Could not write to D1: " + err.message);
 			}
 		}
 	} else {
@@ -340,37 +377,59 @@ function scaffoldCms(siteName) {
 // ── Write astro.config.mjs ──
 
 function writeAstroConfig() {
-	writeFileSync("cms/astro.config.mjs", 'import cloudflare from "@astrojs/cloudflare";\n' +
-		'import react from "@astrojs/react";\n' +
-		'import { d1, r2, sandbox } from "@emdash-cms/cloudflare";\n' +
-		'import { formsPlugin } from "@emdash-cms/plugin-forms";\n' +
-		'import { defineConfig } from "astro/config";\n' +
-		'import emdash from "emdash/astro";\n' +
-		'import { deployHookPlugin } from "./src/plugins/deploy-hook/index.ts";\n' +
-		'import { staticExport } from "emdash-static-export";\n\n' +
-		'export default defineConfig({\n' +
-		'\toutput: "server",\n' +
-		'\tadapter: cloudflare(),\n' +
-		'\tvite: {\n' +
-		'\t\tresolve: {\n' +
-		'\t\t\tdedupe: ["emdash"],\n' +
-		'\t\t\talias: {\n' +
-		'\t\t\t\t"@local/deploy-hook-sandbox": new URL("./src/plugins/deploy-hook/sandbox-entry.ts", import.meta.url).pathname,\n' +
-		'\t\t\t},\n' +
-		'\t\t},\n' +
-		'\t},\n' +
-		'\tintegrations: [\n' +
-		'\t\treact(),\n' +
-		'\t\temdash({\n' +
-		'\t\t\tdatabase: d1({ binding: "DB", session: "auto" }),\n' +
-		'\t\t\tstorage: r2({ binding: "MEDIA" }),\n' +
-		'\t\t\tplugins: [formsPlugin(), deployHookPlugin()],\n' +
-		'\t\t\tsandboxRunner: sandbox(),\n' +
-		'\t\t}),\n' +
-		'\t\tstaticExport(),\n' +
-		'\t],\n' +
-		'\tdevToolbar: { enabled: false },\n' +
-		'});\n');
+	var config = readFileSync("cms/astro.config.mjs", "utf8");
+	var original = config;
+	var errors = [];
+
+	// 1. Add imports after emdash import
+	var anchor1 = 'import emdash from "emdash/astro";';
+	if (config.indexOf(anchor1) !== -1) {
+		config = config.replace(anchor1, anchor1 + "\n" +
+			'import { deployHookPlugin } from "./src/plugins/deploy-hook/index.ts";\n' +
+			'import { staticExport } from "emdash-static-export";');
+	} else {
+		errors.push("Could not find emdash import");
+	}
+
+	// 2. Add vite alias after adapter: cloudflare()
+	var anchor2 = "adapter: cloudflare(),";
+	if (config.indexOf(anchor2) !== -1) {
+		config = config.replace(anchor2, anchor2 + "\n" +
+			"\tvite: {\n" +
+			"\t\tresolve: {\n" +
+			'\t\t\tdedupe: ["emdash"],\n' +
+			"\t\t\talias: {\n" +
+			'\t\t\t\t"@local/deploy-hook-sandbox": new URL("./src/plugins/deploy-hook/sandbox-entry.ts", import.meta.url).pathname,\n' +
+			"\t\t\t},\n" +
+			"\t\t},\n" +
+			"\t},");
+	} else {
+		errors.push("Could not find adapter line");
+	}
+
+	// 3. Add deployHookPlugin to plugins array
+	var anchor3 = "plugins: [formsPlugin()]";
+	if (config.indexOf(anchor3) !== -1) {
+		config = config.replace(anchor3, "plugins: [formsPlugin(), deployHookPlugin()]");
+	} else {
+		errors.push("Could not find plugins array");
+	}
+
+	// 4. Add staticExport() after emdash closing inside integrations
+	var anchor4 = "marketplace: \"https://marketplace.emdashcms.com\",\n\t\t}),";
+	if (config.indexOf(anchor4) !== -1) {
+		config = config.replace(anchor4, anchor4 + "\n\t\tstaticExport(),");
+	} else {
+		errors.push("Could not find emdash closing to add staticExport");
+	}
+
+	if (errors.length > 0) {
+		console.log("  WARNING: Config injection issues: " + errors.join(", "));
+		console.log("  Saving original as cms/astro.config.original.mjs");
+		writeFileSync("cms/astro.config.original.mjs", original);
+	}
+
+	writeFileSync("cms/astro.config.mjs", config);
 }
 
 // ── Write wrangler configs ──
