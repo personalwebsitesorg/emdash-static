@@ -46,10 +46,18 @@ async function main() {
 		config.subdomain = res.result?.subdomain || "";
 	} catch {}
 
-	// ── Step 1: Create emdash CMS ──
-	console.log("\n  [1/7] Installing emdash CMS...");
+	// ── Step 1: Create emdash CMS from latest template ──
+	console.log("\n  [1/7] Installing emdash CMS (latest from emdash-cms/templates)...");
 	if (!existsSync("cms/package.json")) {
-		scaffoldCms(siteName);
+		try {
+			execSync("npx --yes giget@latest github:emdash-cms/templates/blog-cloudflare cms", { stdio: "pipe" });
+			// Remove pnpm-workspace.yaml (artifact from monorepo template)
+			try { execSync("rm -f cms/pnpm-workspace.yaml", { stdio: "pipe" }); } catch {}
+			console.log("         Downloaded blog-cloudflare template");
+		} catch (err) {
+			console.log("         giget failed, scaffolding manually...");
+			scaffoldCms(siteName);
+		}
 		console.log("         Created cms/");
 	} else {
 		console.log("         cms/ already exists, skipping");
@@ -313,13 +321,13 @@ function scaffoldCms(siteName) {
 		type: "module",
 		scripts: { dev: "astro dev", build: "astro build", deploy: "astro build && wrangler deploy" },
 		dependencies: {
-			"@astrojs/cloudflare": "^13.1.6",
-			"@astrojs/react": "^5.0.0",
-			"@emdash-cms/cloudflare": "^0.0.3",
-			"@emdash-cms/plugin-forms": "^0.0.3",
-			"@emdash-cms/plugin-webhook-notifier": "^0.0.3",
-			astro: "^6.1.2",
-			emdash: "^0.0.3",
+			"@astrojs/cloudflare": "latest",
+			"@astrojs/react": "latest",
+			"@emdash-cms/cloudflare": "latest",
+			"@emdash-cms/plugin-forms": "latest",
+			"@emdash-cms/plugin-webhook-notifier": "latest",
+			astro: "latest",
+			emdash: "latest",
 			react: "^19.2.4",
 			"react-dom": "^19.2.4",
 		},
