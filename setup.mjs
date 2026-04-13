@@ -18,7 +18,7 @@
  */
 
 import { execSync } from "node:child_process";
-import { readFileSync, writeFileSync, existsSync, cpSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, cpSync, mkdirSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { createInterface } from "node:readline";
 
@@ -35,8 +35,21 @@ async function main() {
 	if (!accountId) { console.error("  Could not get account ID. Check your token."); process.exit(1); }
 	console.log("  Account: " + accountId);
 
-	const siteName = process.env.SITE_NAME || await ask("Site name: ", "my-site");
-	const theme = process.env.THEME || await ask("Theme (professional/editorial/minimal/bold): ", "professional");
+	const siteName = (process.env.SITE_NAME || await ask("Site name: ", "my-site")).toLowerCase();
+
+	// Read available themes from local static/src/themes directory
+	var availableThemes = [];
+	if (existsSync("static/src/themes")) {
+		var themeEntries = readdirSync("static/src/themes", { withFileTypes: true });
+		for (var i = 0; i < themeEntries.length; i++) {
+			if (themeEntries[i].isDirectory() && themeEntries[i].name !== "shared") {
+				availableThemes.push(themeEntries[i].name);
+			}
+		}
+	}
+	if (availableThemes.length === 0) availableThemes = ["professional", "editorial", "minimal", "bold"];
+
+	const theme = process.env.THEME || await ask("Theme (" + availableThemes.join("/") + "): ", availableThemes[0]);
 
 	const config = { apiToken, accountId, siteName, theme, d1Id: "", r2PublicUrl: "", subdomain: "", triggerUrl: "" };
 
