@@ -125,6 +125,11 @@ async function main() {
 	cpSync("plugins/deploy-hook/index.ts", "cms/src/plugins/deploy-hook/index.ts");
 	cpSync("plugins/deploy-hook/sandbox-entry.ts", "cms/src/plugins/deploy-hook/sandbox-entry.ts");
 
+	// Copy resend email plugin
+	mkdirSync("cms/src/plugins/resend", { recursive: true });
+	cpSync("plugins/resend/index.ts", "cms/src/plugins/resend/index.ts");
+	cpSync("plugins/resend/sandbox-entry.ts", "cms/src/plugins/resend/sandbox-entry.ts");
+
 	// Rewrite astro.config.mjs
 	writeAstroConfig();
 	console.log("         Done");
@@ -399,6 +404,7 @@ function writeAstroConfig() {
 	if (config.indexOf(anchor1) !== -1) {
 		config = config.replace(anchor1, anchor1 + "\n" +
 			'import { deployHookPlugin } from "./src/plugins/deploy-hook/index.ts";\n' +
+			'import { emdashResend } from "./src/plugins/resend/index.ts";\n' +
 			'import { staticExport } from "emdash-static-export";');
 	} else {
 		errors.push("Could not find emdash import");
@@ -413,6 +419,7 @@ function writeAstroConfig() {
 			'\t\t\tdedupe: ["emdash"],\n' +
 			"\t\t\talias: {\n" +
 			'\t\t\t\t"@local/deploy-hook-sandbox": new URL("./src/plugins/deploy-hook/sandbox-entry.ts", import.meta.url).pathname,\n' +
+			'\t\t\t\t"@local/resend-sandbox": new URL("./src/plugins/resend/sandbox-entry.ts", import.meta.url).pathname,\n' +
 			"\t\t\t},\n" +
 			"\t\t},\n" +
 			"\t},");
@@ -423,7 +430,7 @@ function writeAstroConfig() {
 	// 3. Add deployHookPlugin to plugins array
 	var anchor3 = "plugins: [formsPlugin()]";
 	if (config.indexOf(anchor3) !== -1) {
-		config = config.replace(anchor3, "plugins: [formsPlugin(), deployHookPlugin()]");
+		config = config.replace(anchor3, "plugins: [formsPlugin(), deployHookPlugin(), emdashResend()]");
 	} else {
 		errors.push("Could not find plugins array");
 	}
