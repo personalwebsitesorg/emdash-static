@@ -1,12 +1,35 @@
 import { definePlugin } from "emdash";
 import type { PluginContext } from "emdash";
 
-var THEMES = [
+var FALLBACK_THEMES = [
 	{ label: "Professional", value: "professional" },
 	{ label: "Editorial", value: "editorial" },
 	{ label: "Minimal", value: "minimal" },
 	{ label: "Bold", value: "bold" },
 ];
+
+var GITHUB_THEMES_URL = "https://api.github.com/repos/personalwebsitesorg/emdash-static/contents/static/src/themes";
+
+async function fetchThemes(ctx: PluginContext) {
+	if (!ctx.http) return FALLBACK_THEMES;
+	try {
+		var res = await ctx.http.fetch(GITHUB_THEMES_URL, {
+			headers: { "Accept": "application/vnd.github.v3+json", "User-Agent": "emdash-static" },
+		});
+		if (!res.ok) return FALLBACK_THEMES;
+		var items = (await res.json()) as any[];
+		var themes: { label: string; value: string }[] = [];
+		for (var i = 0; i < items.length; i++) {
+			if (items[i].type === "dir" && items[i].name !== "shared") {
+				var name = items[i].name;
+				themes.push({ label: name.charAt(0).toUpperCase() + name.slice(1), value: name });
+			}
+		}
+		return themes.length > 0 ? themes : FALLBACK_THEMES;
+	} catch (_e) {
+		return FALLBACK_THEMES;
+	}
+}
 
 async function buildAdminPage(ctx: PluginContext) {
 	var hookUrl = "";
@@ -20,6 +43,8 @@ async function buildAdminPage(ctx: PluginContext) {
 		lastStatus = (await ctx.kv.get("state:lastStatus")) || "";
 		lastBuild = (await ctx.kv.get("state:lastBuild")) || "";
 	} catch (_e) {}
+
+	var themes = await fetchThemes(ctx);
 
 	var blocks: unknown[] = [{ type: "header", text: "Static Site" }];
 
@@ -35,7 +60,7 @@ async function buildAdminPage(ctx: PluginContext) {
 			block_id: "setup",
 			fields: [
 				{ type: "text_input", action_id: "hookUrl", label: "Deploy Hook URL", placeholder: "https://api.cloudflare.com/..." },
-				{ type: "select", action_id: "theme", label: "Theme", options: THEMES, initial_value: theme },
+				{ type: "select", action_id: "theme", label: "Theme", options: themes, initial_value: theme },
 			],
 			submit: { label: "Save", action_id: "save_settings" },
 		});
@@ -67,7 +92,7 @@ async function buildAdminPage(ctx: PluginContext) {
 		block_id: "settings",
 		fields: [
 			{ type: "text_input", action_id: "hookUrl", label: "Deploy Hook URL", initial_value: hookUrl },
-			{ type: "select", action_id: "theme", label: "Theme", options: THEMES, initial_value: theme },
+			{ type: "select", action_id: "theme", label: "Theme", options: themes, initial_value: theme },
 		],
 		submit: { label: "Update", action_id: "save_settings" },
 	});
