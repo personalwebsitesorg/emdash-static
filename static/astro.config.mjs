@@ -2,12 +2,10 @@ import { defineConfig } from "astro/config";
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const theme = process.env.THEME || "professional";
-
 export default defineConfig({
   output: "static",
-  site: process.env.PUBLIC_SITE_URL || "https://adambuice.com",
-  srcDir: `./src/themes/${theme}`,
+  site: process.env.PUBLIC_SITE_URL || "https://example.com",
+  srcDir: "./src",
   compressHTML: true,
   build: {
     inlineStylesheets: "always",
@@ -15,7 +13,7 @@ export default defineConfig({
   vite: {
     resolve: {
       alias: {
-        "@shared": resolve("src/shared"),
+        "@site": resolve("src/lib"),
         "@generated": resolve("generated"),
       },
     },
