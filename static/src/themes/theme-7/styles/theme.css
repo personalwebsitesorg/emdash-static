@@ -292,7 +292,7 @@ body {
 }
 
 .hero .hero__body > * + * {
-  display: none;
+  margin-top: 0.75em;
 }
 
 .hero__actions {

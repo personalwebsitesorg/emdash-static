@@ -436,6 +436,15 @@ export function getPageBySlug(slug: string): Page | undefined {
   return _pagesBySlug!.get(slug);
 }
 
+/** Find the homepage by checking common slugs. */
+export function getHomePage(): Page | undefined {
+  for (const s of ["home", "homepage", "index", "front-page"]) {
+    const p = getPageBySlug(s);
+    if (p) return p;
+  }
+  return undefined;
+}
+
 export function getPostBySlug(slug: string): Post | undefined {
   if (!_postsBySlug) getPosts();
   return _postsBySlug!.get(slug);

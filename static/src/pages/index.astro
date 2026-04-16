@@ -2,7 +2,7 @@
 import Base from "../layouts/Base.astro";
 import PostCard from "../components/PostCard.astro";
 import PortableText from "@site/PortableText.astro";
-import { getPosts, getSiteSettings, getPageBySlug, getAllCategories } from "@site/snapshot";
+import { getPosts, getSiteSettings, getHomePage, getAllCategories } from "@site/snapshot";
 import { getSiteConfig } from "@site/site-config";
 
 const settings = getSiteSettings();
@@ -10,7 +10,7 @@ const config = getSiteConfig();
 const posts = getPosts();
 const recentPosts = posts.slice(0, 6);
 const categories = getAllCategories();
-const homePage = getPageBySlug("home");
+const homePage = getHomePage();
 ---
 
 <Base description={settings.tagline || homePage?.excerpt} currentPath="/">
