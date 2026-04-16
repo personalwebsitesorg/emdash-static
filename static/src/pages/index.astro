@@ -16,25 +16,36 @@ const homePage = getPageBySlug("home");
 <Base description={settings.tagline || homePage?.excerpt} currentPath="/">
   <div class="container">
     <section class="hero">
-      <h1 class="hero__title">{settings.title}</h1>
-      {settings.tagline && <p class="hero__tagline">{settings.tagline}</p>}
-
-      {homePage && homePage.content.length > 0 && (
-        <div class="hero__body">
-          <PortableText value={homePage.content} />
+      {homePage?.featuredImage?.src && (
+        <div class="hero-media">
+          <div class="hero-media-card">
+            <img src={homePage.featuredImage.src} alt={homePage.featuredImage.alt || settings.title} width={homePage.featuredImage.width || undefined} height={homePage.featuredImage.height || undefined} loading="eager" decoding="async" fetchpriority="high" />
+          </div>
         </div>
       )}
+      <div class="home-hero">
+        <div class="hero-copy">
+          <h1 class="hero__title">{settings.title}</h1>
+          {settings.tagline && <p class="hero__tagline">{settings.tagline}</p>}
 
-      <div class="hero__actions">
-        {config.ctaLabel && config.ctaUrl && (
-          <a class="btn btn--primary" href={config.ctaUrl}>{config.ctaLabel}</a>
-        )}
-        <a class="btn btn--ghost" href="/posts">
-          See recent articles
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="8" x2="13" y2="8" /><polyline points="9,4 13,8 9,12" />
-          </svg>
-        </a>
+          {homePage && homePage.content.length > 0 && (
+            <div class="hero__body">
+              <PortableText value={homePage.content} />
+            </div>
+          )}
+
+          <div class="hero__actions">
+            {config.ctaLabel && config.ctaUrl && (
+              <a class="btn btn--primary" href={config.ctaUrl}>{config.ctaLabel}</a>
+            )}
+            <a class="btn btn--ghost" href="/posts">
+              See recent articles
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="8" x2="13" y2="8" /><polyline points="9,4 13,8 9,12" />
+              </svg>
+            </a>
+          </div>
+        </div>
       </div>
     </section>
 

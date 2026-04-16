@@ -195,16 +195,27 @@ function rewriteMediaUrl(url: string): string {
 
 function parseFeaturedImage(raw: unknown): MediaImage | null {
   if (!raw) return null;
-  const data = typeof raw === "string" ? JSON.parse(raw) : raw;
-  if (!data || typeof data !== "object") return null;
-  const src = rewriteMediaUrl(data.src || "");
-  return {
-    src,
-    alt: data.alt || "",
-    width: data.width || 0,
-    height: data.height || 0,
-    filename: data.filename || "",
-  };
+  if (typeof raw === "string") {
+    // Try JSON first (e.g. {"src":"...","alt":"..."})
+    if (raw.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          const src = rewriteMediaUrl(parsed.src || "");
+          return src ? { src, alt: parsed.alt || "", width: parsed.width || 0, height: parsed.height || 0, filename: parsed.filename || "" } : null;
+        }
+      } catch {}
+    }
+    // Plain URL string (WordPress import format)
+    const src = rewriteMediaUrl(raw);
+    return src ? { src, alt: "", width: 0, height: 0, filename: "" } : null;
+  }
+  if (typeof raw === "object") {
+    const data = raw as any;
+    const src = rewriteMediaUrl(data.src || "");
+    return src ? { src, alt: data.alt || "", width: data.width || 0, height: data.height || 0, filename: data.filename || "" } : null;
+  }
+  return null;
 }
 
 // ── Reading time ──
@@ -514,18 +525,46 @@ export function getSiteSettings(): SiteSettings {
     url: get("site:url") || "",
     dateFormat: get("site:dateFormat") || "MMMM d, yyyy",
     postsPerPage: parseInt(get("site:postsPerPage"), 10) || 10,
-    titleSeparator: get("site:titleSeparator") || " | ",
+    titleSeparator: (() => {
+      const raw = get("site:seo");
+      if (raw && typeof raw === "string" && raw.startsWith("{")) {
+        try { return JSON.parse(raw).titleSeparator || " | "; } catch {}
+      }
+      return get("site:titleSeparator") || " | ";
+    })(),
     defaultOgImage: get("site:defaultOgImage") ? rewriteMediaUrl(get("site:defaultOgImage")) : null,
-      social: {
-        twitter: get("site:twitter") || "",
-        github: get("site:github") || "",
-        facebook: get("site:facebook") || "",
-        instagram: get("site:instagram") || "",
-        linkedin: get("site:linkedin") || "",
-        youtube: get("site:youtube") || "",
-      },
-      googleVerification: get("site:googleVerification") || "",
-      bingVerification: get("site:bingVerification") || "",
+      social: (() => {
+        // CMS stores social as a single JSON object at site:social
+        const raw = get("site:social");
+        let s: any = {};
+        if (raw && typeof raw === "string" && raw.startsWith("{")) {
+          try { s = JSON.parse(raw); } catch {}
+        } else if (raw && typeof raw === "object") {
+          s = raw;
+        }
+        return {
+          twitter: s.twitter || "",
+          github: s.github || "",
+          facebook: s.facebook || "",
+          instagram: s.instagram || "",
+          linkedin: s.linkedin || "",
+          youtube: s.youtube || "",
+        };
+      })(),
+      googleVerification: (() => {
+        const raw = get("site:seo");
+        if (raw && typeof raw === "string" && raw.startsWith("{")) {
+          try { return JSON.parse(raw).googleVerification || ""; } catch {}
+        }
+        return get("site:googleVerification") || "";
+      })(),
+      bingVerification: (() => {
+        const raw = get("site:seo");
+        if (raw && typeof raw === "string" && raw.startsWith("{")) {
+          try { return JSON.parse(raw).bingVerification || ""; } catch {}
+        }
+        return get("site:bingVerification") || "";
+      })(),
   };
   return _siteSettingsCache;
 }
