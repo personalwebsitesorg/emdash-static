@@ -474,19 +474,47 @@ body {
 }
 
 .site-footer {
-  background: #2d2d2d;
+  background: #1a1a1a;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.site-footer .footer-brand-name,
+.site-footer .footer-recent-title,
+.site-footer .footer-recent-title a {
   color: #ffffff;
 }
 
-.footer-heading,
-.footer-brand-name,
-.footer-links a,
-.footer-copyright {
-  color: inherit;
+.site-footer .footer-heading {
+  color: rgba(255, 255, 255, 0.4);
 }
 
-.footer-links a:hover {
-  color: var(--accent);
+.site-footer .footer-blurb,
+.site-footer .footer-links a,
+.site-footer .footer-social a {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.site-footer .footer-links a:hover,
+.site-footer .footer-social a:hover,
+.site-footer .footer-recent-title a:hover {
+  color: #ffffff;
+}
+
+.site-footer .footer-recent-date {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.site-footer .footer-social a {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.site-footer .footer-social a:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.site-footer .footer-bottom {
+  color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .footer-nav {
