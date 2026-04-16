@@ -438,13 +438,20 @@ function normalizeMenuUrl(url: string): string {
   return url;
 }
 
+function resolveMenuItemUrl(item: any): string | null {
+  if (item.type !== "content" || !item.reference_id) return null;
+  if (item.reference_collection === "posts") return "/posts/" + item.reference_id;
+  if (item.reference_collection === "pages") return "/" + item.reference_id;
+  return "/" + item.reference_id;
+}
+
 export function getMenuItems(): MenuItem[] {
   const flat = table("_emdash_menu_items")
   .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
   .map((r: any) => ({
     id: r.id,
     label: r.label || "",
-    url: normalizeMenuUrl(r.custom_url || "/"),
+    url: normalizeMenuUrl(r.custom_url || resolveMenuItemUrl(r) || "/"),
                     target: r.target || null,
                     parentId: r.parent_id || null,
                     cssClasses: r.css_classes || null,
