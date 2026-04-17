@@ -18,6 +18,8 @@ const THEME_FONTS = {
   editorial: "Playfair+Display:wght@400;500;600;700;800&family=Source+Sans+3:wght@300;400;500;600",
   minimal: "IBM+Plex+Sans:wght@300;400;500;600;700",
   bold: "Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700",
+  arch: "Playfair+Display:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700",
+  founder: "Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700",
 };
 
 const outDir = resolve(process.cwd(), "generated");

@@ -48,6 +48,26 @@ export interface Page {
   seo: SeoMeta | null;
 }
 
+export interface Homepage {
+  id: string;
+  slug: string;
+  title: string;
+  content: unknown[];
+  subtitle: string;
+  heroLayout: string;
+  heroImage: MediaImage | null;
+  heroPrimaryCtaLabel: string;
+  heroPrimaryCtaHref: string;
+  heroSecondaryCtaLabel: string;
+  heroSecondaryCtaHref: string;
+  showSocialStrip: boolean;
+  postsHeading: string;
+  postsStyle: string;
+  showRecentPosts: boolean;
+  publishedAt: string | null;
+  updatedAt: string | null;
+}
+
 export interface MediaImage {
   src: string;
   alt: string;
@@ -347,6 +367,7 @@ function parseContent(raw: unknown): unknown[] {
 // memoize post/page/settings
 let _postsCache: Post[] | null = null;
 let _pagesCache: Page[] | null = null;
+let _homepageCache: Homepage | null | undefined = undefined;
 let _siteSettingsCache: SiteSettings | null = null;
 
 // pre-index pages and posts
@@ -434,6 +455,33 @@ export function getPages(): Page[] {
 export function getPageBySlug(slug: string): Page | undefined {
   if (!_pagesBySlug) getPages();
   return _pagesBySlug!.get(slug);
+}
+
+/** Read structured homepage from ec_homepage table. */
+export function getHomepage(): Homepage | undefined {
+  if (_homepageCache !== undefined) return _homepageCache ?? undefined;
+  const row = table("ec_homepage").find((r: any) => r.status === "published") as any;
+  if (!row) { _homepageCache = null; return undefined; }
+  _homepageCache = {
+    id: row.id,
+    slug: row.slug,
+    title: row.title || "",
+    content: parseContent(row.content),
+    subtitle: row.subtitle || "",
+    heroLayout: row.hero_layout || "text-only",
+    heroImage: parseFeaturedImage(row.hero_image),
+    heroPrimaryCtaLabel: row.hero_primary_cta_label || "",
+    heroPrimaryCtaHref: row.hero_primary_cta_href || "",
+    heroSecondaryCtaLabel: row.hero_secondary_cta_label || "",
+    heroSecondaryCtaHref: row.hero_secondary_cta_href || "",
+    showSocialStrip: Boolean(row.show_social_strip),
+    postsHeading: row.posts_heading || "Recent articles",
+    postsStyle: row.posts_style || "cards",
+    showRecentPosts: typeof row.show_recent_posts === "number" ? Boolean(row.show_recent_posts) : true,
+    publishedAt: row.published_at || null,
+    updatedAt: row.updated_at || null,
+  };
+  return _homepageCache;
 }
 
 /** Find the homepage by checking common slugs. */

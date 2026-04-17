@@ -1,17 +1,14 @@
 ---
 import Base from "../../layouts/Base.astro";
 import PortableText from "@site/PortableText.astro";
-import Sidebar from "../../components/Sidebar.astro";
-import { getPosts, getAllCategories, getAllTags } from "@site/snapshot";
+import AuthorBio from "../../components/AuthorBio.astro";
+import { getPosts } from "@site/snapshot";
 
 export function getStaticPaths() {
   return getPosts().map((post) => ({ params: { slug: post.slug }, props: { post } }));
 }
 
 const { post } = Astro.props;
-const allPosts = getPosts();
-const categories = getAllCategories();
-const tags = getAllTags();
 const date = post.publishedAt ? new Date(post.publishedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : null;
 const primaryCategory = post.categories[0];
 const authorName = post.bylines[0]?.displayName;
@@ -21,14 +18,21 @@ const authorName = post.bylines[0]?.displayName;
   <div class="container section">
     <div class="layout-with-sidebar">
       <article class="prose">
+        <nav class="breadcrumbs">
+          <a href="/">Home</a>
+          <span class="breadcrumb-sep">/</span>
+          <a href="/posts">Articles</a>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-current">{post.title}</span>
+        </nav>
         <div class="article-header">
+          <h1>{post.title}</h1>
           <div class="article-meta">
             {primaryCategory && <a href={`/category/${primaryCategory.slug}`} class="article-category">{primaryCategory.label}</a>}
             {date && <time datetime={post.publishedAt!}>{date}</time>}
             <span>{post.readingTime} min read</span>
             {authorName && <span>By {authorName}</span>}
           </div>
-          <h1>{post.title}</h1>
           {post.excerpt && <p class="article-lead">{post.excerpt}</p>}
         </div>
         {post.featuredImage?.src && (
@@ -38,7 +42,7 @@ const authorName = post.bylines[0]?.displayName;
         )}
         <PortableText value={post.content} />
       </article>
-      <Sidebar recentPosts={allPosts} categories={categories} tags={tags} />
+      <AuthorBio />
     </div>
   </div>
 </Base>

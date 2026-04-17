@@ -7,3 +7,4 @@ site.config.json
 cms/
 static/generated/
 static/public/fonts/
+.gstack/

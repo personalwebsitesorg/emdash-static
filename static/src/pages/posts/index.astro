@@ -1,19 +1,17 @@
 ---
 import Base from "../../layouts/Base.astro";
 import PostCard from "../../components/PostCard.astro";
-import Sidebar from "../../components/Sidebar.astro";
-import { getPosts, getAllCategories, getAllTags } from "@site/snapshot";
+import { getPosts, getAllCategories, getSiteSettings } from "@site/snapshot";
 
 const posts = getPosts();
 const categories = getAllCategories();
-const tags = getAllTags();
-const recentPosts = posts.slice(0, 5);
+const settings = getSiteSettings();
 ---
 
-<Base title="Articles" description="Browse all articles" currentPath="/posts">
+<Base title="Articles" description={settings.tagline || "Browse all articles"} currentPath="/posts">
   <div class="container">
     <h1 class="page-title">Articles <span class="section-count">({posts.length})</span></h1>
-    <p class="page-subtitle">Browse all published articles</p>
+    {settings.tagline && <p class="page-subtitle">{settings.tagline}</p>}
 
     {categories.length > 0 && (
       <div class="category-bar">
@@ -24,16 +22,10 @@ const recentPosts = posts.slice(0, 5);
       </div>
     )}
 
-    <div class="layout-with-sidebar">
-      <div>
-        <div class="post-grid post-grid--2col">
-          {posts.map((post, i) => (
-            <PostCard post={post} eager={i < 2} />
-          ))}
-        </div>
-      </div>
-
-      <Sidebar recentPosts={recentPosts} categories={categories} tags={tags} />
+    <div class="post-grid post-grid--2col">
+      {posts.map((post, i) => (
+        <PostCard post={post} eager={i < 2} />
+      ))}
     </div>
   </div>
 </Base>

@@ -2,7 +2,7 @@
 import Base from "../layouts/Base.astro";
 import PostCard from "../components/PostCard.astro";
 import PortableText from "@site/PortableText.astro";
-import { getPosts, getSiteSettings, getHomePage, getAllCategories } from "@site/snapshot";
+import { getPosts, getSiteSettings, getHomePage, getHomepage, getAllCategories } from "@site/snapshot";
 import { getSiteConfig } from "@site/site-config";
 
 const settings = getSiteSettings();
@@ -10,45 +10,65 @@ const config = getSiteConfig();
 const posts = getPosts();
 const recentPosts = posts.slice(0, 6);
 const categories = getAllCategories();
-const homePage = getHomePage();
+const homePage = getHomepage() ?? getHomePage();
 ---
 
 <Base description={settings.tagline || homePage?.excerpt} currentPath="/">
-  <div class="container">
-    <section class="hero">
-      {homePage?.featuredImage?.src && (
-        <div class="hero-media">
-          <div class="hero-media-card">
-            <img src={homePage.featuredImage.src} alt={homePage.featuredImage.alt || settings.title} width={homePage.featuredImage.width || undefined} height={homePage.featuredImage.height || undefined} loading="eager" decoding="async" fetchpriority="high" />
-          </div>
+
+  <!-- Hero is full-width, outside the container -->
+  <section class="hero">
+    <!-- Left: small intro + giant title -->
+    <div class="hero-left">
+      {((homePage as any)?.subtitle || settings.tagline) && (
+        <p class="hero__tagline">{(homePage as any)?.subtitle || settings.tagline}</p>
+      )}
+      <h1 class="hero__title">
+        {(homePage as any)?.title || settings.title}
+      </h1>
+    </div>
+
+    <!-- Center: arch image, always visible (placeholder when no photo set) -->
+    <div class="hero-media">
+      <div class="hero-media-card">
+        {homePage?.featuredImage?.src && (
+          <img src={homePage.featuredImage.src} alt={homePage.featuredImage.alt || settings.title} width={homePage.featuredImage.width || undefined} height={homePage.featuredImage.height || undefined} loading="eager" decoding="async" fetchpriority="high" />
+        )}
+      </div>
+    </div>
+
+    <!-- Right: body text + CTAs -->
+    <div class="hero-right">
+      {homePage && (homePage as any).content?.length > 0 && (
+        <div class="hero__body">
+          <PortableText value={(homePage as any).content} />
         </div>
       )}
-      <div class="home-hero">
-        <div class="hero-copy">
-          <h1 class="hero__title">{settings.title}</h1>
-          {settings.tagline && <p class="hero__tagline">{settings.tagline}</p>}
-
-          {homePage && homePage.content.length > 0 && (
-            <div class="hero__body">
-              <PortableText value={homePage.content} />
-            </div>
-          )}
-
-          <div class="hero__actions">
-            {config.ctaLabel && config.ctaUrl && (
-              <a class="btn btn--primary" href={config.ctaUrl}>{config.ctaLabel}</a>
-            )}
-            <a class="btn btn--ghost" href="/posts">
-              See recent articles
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="3" y1="8" x2="13" y2="8" /><polyline points="9,4 13,8 9,12" />
-              </svg>
-            </a>
-          </div>
-        </div>
+      <div class="hero__actions">
+        {(homePage as any)?.heroPrimaryCtaLabel && (homePage as any)?.heroPrimaryCtaHref ? (
+          <a class="btn btn--primary" href={(homePage as any).heroPrimaryCtaHref}>
+            {(homePage as any).heroPrimaryCtaLabel}
+          </a>
+        ) : config.ctaLabel && config.ctaUrl ? (
+          <a class="btn btn--primary" href={config.ctaUrl}>{config.ctaLabel}</a>
+        ) : null}
+        {(homePage as any)?.heroSecondaryCtaLabel && (homePage as any)?.heroSecondaryCtaHref ? (
+          <a class="btn btn--ghost" href={(homePage as any).heroSecondaryCtaHref}>
+            {(homePage as any).heroSecondaryCtaLabel}
+          </a>
+        ) : (
+          <a class="btn btn--ghost" href="/posts">
+            See recent articles
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="8" x2="13" y2="8" /><polyline points="9,4 13,8 9,12" />
+            </svg>
+          </a>
+        )}
       </div>
-    </section>
+    </div>
+  </section>
 
+  <!-- Rest of page content in container -->
+  <div class="container">
     {categories.length > 0 && (
       <div class="category-bar">
         <a class="category-chip category-chip--active" href="/posts">All</a>

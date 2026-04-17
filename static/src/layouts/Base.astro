@@ -32,7 +32,9 @@ const {
 const settings = getSiteSettings();
 const config = getSiteConfig();
 const menuItems = getMenuItems();
-const recentPosts = getPosts().slice(0, 3);
+const allPosts = getPosts();
+const recentPosts = allPosts.slice(0, 5);
+const bestPosts = allPosts.slice(0, 5);
 
 const fullTitle = pageTitle ? `${pageTitle}${settings.titleSeparator}${settings.title}` : settings.title;
 const canonicalUrl = canonical || new URL(Astro.url.pathname, Astro.site).href;
@@ -121,7 +123,7 @@ const activePath = currentPath || Astro.url.pathname;
         {settings.logo?.src && (
           <img class="footer-logo-img" src={settings.logo.src} alt={settings.logo.alt || settings.title} width="36" height="36" loading="lazy" decoding="async" />
         )}
-        <div class="footer-brand-name">{settings.title}</div>
+        <a class="footer-brand-name" href="/">{settings.title}</a>
         <p class="footer-blurb">{config.footerBlurb || settings.tagline}</p>
         {(() => {
           const socialLinks = config.social.length > 0 ? config.social : (() => {
@@ -146,27 +148,29 @@ const activePath = currentPath || Astro.url.pathname;
         })()}
       </div>
       <div>
-        <div class="footer-heading">Explore</div>
-        <ul class="footer-links">
-          {menuItems.map((item) => (
-            <li><a href={item.url}>{item.label}</a></li>
-          ))}
-          <li><a href="/posts">Articles</a></li>
-        </ul>
-      </div>
-      <div>
-        <div class="footer-heading">Recent</div>
+        <div class="footer-heading">Recent Posts</div>
         {recentPosts.map((post) => (
           <div class="footer-recent-item">
             <div class="footer-recent-title"><a href={`/posts/${post.slug}`}>{post.title}</a></div>
-            {post.publishedAt && (
-              <div class="footer-recent-date">{new Date(post.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
-            )}
+          </div>
+        ))}
+      </div>
+      <div>
+        <div class="footer-heading">Best Posts</div>
+        {bestPosts.map((post) => (
+          <div class="footer-recent-item">
+            <div class="footer-recent-title"><a href={`/posts/${post.slug}`}>{post.title}</a></div>
           </div>
         ))}
       </div>
     </div>
-    <div class="footer-bottom">&copy; {new Date().getFullYear()} {config.copyrightName || settings.title}. All rights reserved.</div>
+    <div class="footer-bottom">
+      <nav class="footer-bottom-nav">
+        {menuItems.map((item) => (
+          <a href={item.url}>{item.label}</a>
+        ))}
+      </nav>
+    </div>
   </footer>
 
   <script>
