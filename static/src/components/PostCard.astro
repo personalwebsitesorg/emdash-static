@@ -57,5 +57,9 @@ const category = post.categories[0];
     {post.excerpt && (
       <p class="post-card__excerpt">{post.excerpt}</p>
     )}
+
+    <a class="post-card__readmore" href={`/posts/${post.slug}`}>
+      Read more &rarr;
+    </a>
   </div>
 </article>

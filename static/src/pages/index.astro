@@ -68,14 +68,24 @@ const homePage = getHomepage() ?? getHomePage();
   </section>
 
   <!-- Scrolling ticker bar (shown per-theme via CSS) -->
-  <div class="hero-ticker" aria-hidden="true">
-    <div class="hero-ticker__inner">
-      {[...categories, ...categories, ...categories].map((cat) => (
-        <>
-          <span class="ticker-item">{cat.label}</span>
-          <span class="ticker-sep">~</span>
-        </>
-      ))}
+  <div class="hero-ticker-wrap" aria-hidden="true">
+    <div class="hero-ticker">
+      <div class="hero-ticker__row">
+        {Array.from({length: 12}).map(() => (
+          <>
+            <span class="ticker-item">{settings.tagline || settings.title}</span>
+            <span class="ticker-sep">~</span>
+          </>
+        ))}
+      </div>
+      <div class="hero-ticker__row hero-ticker__row--reverse">
+        {Array.from({length: 12}).map(() => (
+          <>
+            <span class="ticker-item">{settings.tagline || settings.title}</span>
+            <span class="ticker-sep">~</span>
+          </>
+        ))}
+      </div>
     </div>
   </div>
 

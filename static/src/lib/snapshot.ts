@@ -743,7 +743,7 @@ export function getPostsByByline(bylineId: string): Post[] {
 }
 
 export function getTheme(): string {
-  return themeConfig.theme || "professional";
+  return (import.meta.env.PUBLIC_THEME as string) || themeConfig.theme || "professional";
 }
 
 export function getGeneratedAt(): string {
