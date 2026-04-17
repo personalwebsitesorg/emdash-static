@@ -67,6 +67,18 @@ const homePage = getHomepage() ?? getHomePage();
     </div>
   </section>
 
+  <!-- Scrolling ticker bar (shown per-theme via CSS) -->
+  <div class="hero-ticker" aria-hidden="true">
+    <div class="hero-ticker__inner">
+      {[...categories, ...categories, ...categories].map((cat) => (
+        <>
+          <span class="ticker-item">{cat.label}</span>
+          <span class="ticker-sep">~</span>
+        </>
+      ))}
+    </div>
+  </div>
+
   <!-- Rest of page content in container -->
   <div class="container">
     {categories.length > 0 && (

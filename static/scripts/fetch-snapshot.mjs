@@ -20,6 +20,7 @@ const THEME_FONTS = {
   bold: "Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700",
   arch: "Playfair+Display:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700",
   founder: "Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700",
+  wavy: "Space+Grotesk:wght@400;500;600;700;800",
 };
 
 const outDir = resolve(process.cwd(), "generated");
