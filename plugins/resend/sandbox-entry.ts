@@ -56,6 +56,7 @@ async function buildSettingsPage(ctx: PluginContext) {
 export default definePlugin({
 	hooks: {
 		"email:deliver": {
+			exclusive: true,
 			handler: async (event: any, ctx: PluginContext) => {
 				if (!ctx.http) {
 					throw new Error("Network not available");
