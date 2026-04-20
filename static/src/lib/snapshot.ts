@@ -61,7 +61,14 @@ export interface Homepage {
   heroSecondaryCtaLabel: string;
   heroSecondaryCtaHref: string;
   showSocialStrip: boolean;
+  aboutHeading: string;
+  aboutBody: string;
+  aboutPrimaryCtaLabel: string;
+  aboutPrimaryCtaHref: string;
+  aboutSecondaryCtaLabel: string;
+  aboutSecondaryCtaHref: string;
   postsHeading: string;
+  postsIntro: string;
   postsStyle: string;
   showRecentPosts: boolean;
   publishedAt: string | null;
@@ -478,7 +485,14 @@ export function getHomepage(): Homepage | undefined {
     heroSecondaryCtaLabel: row.hero_secondary_cta_label || "",
     heroSecondaryCtaHref: row.hero_secondary_cta_href || "",
     showSocialStrip: Boolean(row.show_social_strip),
+    aboutHeading: row.about_heading || "",
+    aboutBody: row.about_body || "",
+    aboutPrimaryCtaLabel: row.about_primary_cta_label || "",
+    aboutPrimaryCtaHref: row.about_primary_cta_href || "",
+    aboutSecondaryCtaLabel: row.about_secondary_cta_label || "",
+    aboutSecondaryCtaHref: row.about_secondary_cta_href || "",
     postsHeading: row.posts_heading || "Recent articles",
+    postsIntro: row.posts_intro || "",
     postsStyle: row.posts_style || "cards",
     showRecentPosts: typeof row.show_recent_posts === "number" ? Boolean(row.show_recent_posts) : true,
     publishedAt: row.published_at || null,
