@@ -48,27 +48,24 @@ const homePage = getHomepage() ?? getHomePage();
           <PortableText value={(homePage as any).content} />
         </div>
       )}
-      <div class="hero__actions">
-        {(homePage as any)?.heroPrimaryCtaLabel && (homePage as any)?.heroPrimaryCtaHref ? (
-          <a class="btn btn--primary" href={(homePage as any).heroPrimaryCtaHref}>
-            {(homePage as any).heroPrimaryCtaLabel}
-          </a>
-        ) : config.ctaLabel && config.ctaUrl ? (
-          <a class="btn btn--primary" href={config.ctaUrl}>{config.ctaLabel}</a>
-        ) : null}
-        {(homePage as any)?.heroSecondaryCtaLabel && (homePage as any)?.heroSecondaryCtaHref ? (
-          <a class="btn btn--ghost" href={(homePage as any).heroSecondaryCtaHref}>
-            {(homePage as any).heroSecondaryCtaLabel}
-          </a>
-        ) : (
-          <a class="btn btn--ghost" href="/posts">
-            See recent articles
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="3" y1="8" x2="13" y2="8" /><polyline points="9,4 13,8 9,12" />
-            </svg>
-          </a>
-        )}
-      </div>
+      {(() => {
+        const primary =
+          (homePage as any)?.heroPrimaryCtaLabel && (homePage as any)?.heroPrimaryCtaHref
+            ? { label: (homePage as any).heroPrimaryCtaLabel, href: (homePage as any).heroPrimaryCtaHref }
+            : config.ctaLabel && config.ctaUrl
+              ? { label: config.ctaLabel, href: config.ctaUrl }
+              : null;
+        const secondary =
+          (homePage as any)?.heroSecondaryCtaLabel && (homePage as any)?.heroSecondaryCtaHref
+            ? { label: (homePage as any).heroSecondaryCtaLabel, href: (homePage as any).heroSecondaryCtaHref }
+            : null;
+        return (primary || secondary) ? (
+          <div class="hero__actions">
+            {primary && <a class="btn btn--primary" href={primary.href}>{primary.label}</a>}
+            {secondary && <a class="btn btn--ghost" href={secondary.href}>{secondary.label}</a>}
+          </div>
+        ) : null;
+      })()}
     </div>
   </section>
 
