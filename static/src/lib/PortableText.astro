@@ -12,6 +12,14 @@ interface Span {
   children?: Span[];
 }
 
+interface ButtonItem {
+  _type?: string;
+  _key?: string;
+  text?: string;
+  url?: string;
+  style?: string;
+}
+
 interface Block {
   _type?: string;
   _key?: string;
@@ -26,6 +34,23 @@ interface Block {
   alignment?: string;
   // Mark definitions
   markDefs?: MarkDef[];
+  // htmlBlock
+  html?: string;
+  // button
+  text?: string;
+  url?: string;
+  // buttons container
+  buttons?: ButtonItem[];
+  layout?: string;
+  // pullquote
+  citation?: string;
+  // code
+  code?: string;
+  language?: string;
+  // gallery
+  images?: Block[];
+  // columns
+  columns?: { content?: Block[] }[];
 }
 
 interface MarkDef {
@@ -91,23 +116,71 @@ interface RenderedBlock {
   html: string;
 }
 
+function renderImage(block: Block): string {
+  const url = block.asset?.url || block.asset?._ref || "";
+  if (!url || !url.startsWith("http")) return "";
+  const alt = escapeHtml(block.alt || "");
+  const caption = block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : "";
+  const cls = block.alignment === "wide" ? " content-image--wide" : "";
+  return `<figure class="content-image${cls}"><img src="${escapeHtml(url)}" alt="${alt}" loading="lazy" decoding="async" sizes="(max-width: 640px) 100vw, 760px" />${caption}</figure>`;
+}
+
+function renderButton(btn: ButtonItem): string {
+  const url = btn.url || "#";
+  const text = escapeHtml(btn.text || "Button");
+  const isExternal = /^https?:/i.test(url);
+  const attrs = isExternal ? ` target="_blank" rel="noopener noreferrer"` : "";
+  const styleMod = btn.style === "outline" ? " btn--outline" : btn.style === "fill" ? " btn--fill" : "";
+  return `<a class="btn btn--primary${styleMod}" href="${escapeHtml(url)}"${attrs}>${text}</a>`;
+}
+
+function renderBlock(block: Block): string {
+  switch (block._type) {
+    case "image":
+      return renderImage(block);
+    case "htmlBlock":
+      return block.html ? `<div class="html-block">${block.html}</div>` : "";
+    case "button":
+      return `<div class="buttons buttons--vertical">${renderButton(block)}</div>`;
+    case "buttons": {
+      const items = Array.isArray(block.buttons) ? block.buttons.map(renderButton).join("") : "";
+      const layoutCls = block.layout === "horizontal" ? "buttons--horizontal" : "buttons--vertical";
+      return items ? `<div class="buttons ${layoutCls}">${items}</div>` : "";
+    }
+    case "pullquote": {
+      const inner = escapeHtml(block.text || "");
+      const cite = block.citation ? `<cite>${escapeHtml(block.citation)}</cite>` : "";
+      return `<blockquote class="pullquote"><p>${inner}</p>${cite}</blockquote>`;
+    }
+    case "code": {
+      const lang = block.language ? ` class="language-${escapeHtml(block.language)}"` : "";
+      return `<pre><code${lang}>${escapeHtml(block.code || "")}</code></pre>`;
+    }
+    case "gallery": {
+      const imgs = Array.isArray(block.images) ? block.images.map(renderImage).join("") : "";
+      return imgs ? `<div class="gallery">${imgs}</div>` : "";
+    }
+    case "columns": {
+      const cols = Array.isArray(block.columns)
+        ? block.columns
+            .map((col) => `<div class="column">${renderBlocks(col.content || [])}</div>`)
+            .join("")
+        : "";
+      return cols ? `<div class="columns">${cols}</div>` : "";
+    }
+    case "break":
+      return "<hr />";
+    default:
+      return "";
+  }
+}
+
 function renderBlocks(blocks: Block[]): string {
   const result: string[] = [];
   let i = 0;
 
   while (i < blocks.length) {
     const block = blocks[i];
-
-    if (block._type === "image") {
-      const url = block.asset?.url || block.asset?._ref || "";
-      if (url && url.startsWith("http")) {
-        const alt = escapeHtml(block.alt || "");
-        const caption = block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : "";
-        result.push(`<figure class="content-image${block.alignment === "wide" ? " content-image--wide" : ""}"><img src="${escapeHtml(url)}" alt="${alt}" width="760" height="475" loading="lazy" decoding="async" sizes="(max-width: 640px) 100vw, 760px" />${caption}</figure>`);
-      }
-      i++;
-      continue;
-    }
 
     if (block.listItem) {
       const tag = block.listItem === "number" ? "ol" : "ul";
@@ -118,6 +191,14 @@ function renderBlocks(blocks: Block[]): string {
         i++;
       }
       result.push(`</${tag}>`);
+      continue;
+    }
+
+    // Non-text custom block types.
+    if (block._type && block._type !== "block") {
+      const custom = renderBlock(block);
+      if (custom) result.push(custom);
+      i++;
       continue;
     }
 

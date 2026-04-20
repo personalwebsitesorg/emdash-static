@@ -31,7 +31,7 @@ const {
 
 const settings = getSiteSettings();
 const config = getSiteConfig();
-const menuItems = getMenuItems();
+const menuItems = getMenuItems("primary");
 const allPosts = getPosts();
 const recentPosts = allPosts.slice(0, 5);
 const bestPosts = allPosts.slice(0, 5);

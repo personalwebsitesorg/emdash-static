@@ -121,6 +121,7 @@ export interface SiteSettings {
   tagline: string;
   logo: MediaImage | null;
   favicon: MediaImage | null;
+  homeHero: MediaImage | null;
   url: string;
   dateFormat: string;
   postsPerPage: number;
@@ -129,6 +130,8 @@ export interface SiteSettings {
   social: { twitter: string; github: string; facebook: string; instagram: string; linkedin: string; youtube: string };
   googleVerification: string;
   bingVerification: string;
+  homepageId: string | null;
+  homepageSlug: string | null;
 }
 
 export interface Widget {
@@ -484,8 +487,18 @@ export function getHomepage(): Homepage | undefined {
   return _homepageCache;
 }
 
-/** Find the homepage by checking common slugs. */
+/** Find the homepage.
+ * 1. Check the structured `ec_homepage` collection (new upstream).
+ * 2. Respect `site:homepage_id` / `site:homepage_slug` options set by the WP
+ *    importer (page whose <link> equals the channel <link>).
+ * 3. Fall back to conventional slugs for plain sites.
+ */
 export function getHomePage(): Page | undefined {
+  const settings = getSiteSettings();
+  const byId = settings.homepageId ? getPages().find((p) => p.id === settings.homepageId) : undefined;
+  if (byId) return byId;
+  const bySlug = settings.homepageSlug ? getPageBySlug(settings.homepageSlug) : undefined;
+  if (bySlug) return bySlug;
   for (const s of ["home", "homepage", "index", "front-page"]) {
     const p = getPageBySlug(s);
     if (p) return p;
@@ -507,14 +520,36 @@ function normalizeMenuUrl(url: string): string {
 }
 
 function resolveMenuItemUrl(item: any): string | null {
-  if (item.type !== "content" || !item.reference_id) return null;
-  if (item.reference_collection === "posts") return "/posts/" + item.reference_id;
-  if (item.reference_collection === "pages") return "/" + item.reference_id;
-  return "/" + item.reference_id;
+  if (!item.reference_id) return null;
+  // Look up the referenced page/post by id so we can build a slug-based URL.
+  // Handles type values "content", "page", and "post" (emdash admin writes
+  // "content"; the WP-import script writes "page"/"post").
+  if (item.reference_collection === "posts") {
+    const post = getPosts().find((p) => p.id === item.reference_id);
+    return post ? `/posts/${post.slug}` : null;
+  }
+  if (item.reference_collection === "pages") {
+    const page = getPages().find((p) => p.id === item.reference_id);
+    return page ? `/${page.slug}` : null;
+  }
+  return null;
 }
 
-export function getMenuItems(): MenuItem[] {
+/** Return items for a single menu.
+ *  Default "primary" (which the WP importer aliases the main WP menu to).
+ *  Without a filter the theme would render every menu's items merged — a
+ *  site with both "primary" and "footer" menus would see each item twice.
+ */
+export function getMenuItems(menuName: string = "primary"): MenuItem[] {
+  const menus = table("_emdash_menus") as Array<{ id: string; name: string }>;
+  const target = menus.find((m) => m.name === menuName);
+  // Fall back: if the named menu doesn't exist (e.g. an old snapshot, or a
+  // site where nothing was aliased to "primary") use the first menu.
+  const menuId = target?.id || menus[0]?.id;
+  if (!menuId) return [];
+
   const flat = table("_emdash_menu_items")
+  .filter((r: any) => r.menu_id === menuId)
   .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
   .map((r: any) => ({
     id: r.id,
@@ -579,6 +614,7 @@ export function getSiteSettings(): SiteSettings {
     tagline: get("site:tagline") || "",
     logo: getMedia("site:logo"),
     favicon: getMedia("site:favicon"),
+    homeHero: getMedia("site:home_hero"),
     url: get("site:url") || "",
     dateFormat: get("site:dateFormat") || "MMMM d, yyyy",
     postsPerPage: parseInt(get("site:postsPerPage"), 10) || 10,
@@ -622,6 +658,8 @@ export function getSiteSettings(): SiteSettings {
         }
         return get("site:bingVerification") || "";
       })(),
+      homepageId: get("site:homepage_id") || null,
+      homepageSlug: get("site:homepage_slug") || null,
   };
   return _siteSettingsCache;
 }

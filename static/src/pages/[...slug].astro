@@ -1,10 +1,12 @@
 ---
 import Base from "../layouts/Base.astro";
 import PortableText from "@site/PortableText.astro";
-import { getPages } from "@site/snapshot";
+import { getPages, getHomePage } from "@site/snapshot";
 
 export function getStaticPaths() {
   const reserved = new Set(["home", "blog", "posts", "articles"]);
+  const homeSlug = getHomePage()?.slug;
+  if (homeSlug) reserved.add(homeSlug);
   return getPages().filter((p) => !reserved.has(p.slug)).map((p) => ({ params: { slug: p.slug }, props: { page: p } }));
 }
 const { page } = Astro.props;

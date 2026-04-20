@@ -30,9 +30,14 @@ const homePage = getHomepage() ?? getHomePage();
     <!-- Center: arch image, always visible (placeholder when no photo set) -->
     <div class="hero-media">
       <div class="hero-media-card">
-        {homePage?.featuredImage?.src && (
-          <img src={homePage.featuredImage.src} alt={homePage.featuredImage.alt || settings.title} width={homePage.featuredImage.width || undefined} height={homePage.featuredImage.height || undefined} loading="eager" decoding="async" fetchpriority="high" />
-        )}
+        {(() => {
+          // Prefer the homepage's own featured image; fall back to the WP
+          // importer's auto-detected site hero (site:home_hero option).
+          const hero = homePage?.featuredImage?.src ? homePage.featuredImage : settings.homeHero;
+          return hero?.src ? (
+            <img src={hero.src} alt={hero.alt || settings.title} width={hero.width || undefined} height={hero.height || undefined} loading="eager" decoding="async" fetchpriority="high" />
+          ) : null;
+        })()}
       </div>
     </div>
 
