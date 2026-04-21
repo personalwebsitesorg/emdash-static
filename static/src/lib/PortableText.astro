@@ -74,6 +74,20 @@ function escapeHtml(str: string): string {
     .replace(/"/g, "&quot;");
 }
 
+// Derive a stable anchor id from heading text. Case-preserving so WordPress-style
+// fragments like #Ingredients match <h2 id="Ingredients">Ingredients</h2>; also
+// hyphenates whitespace and drops characters outside [A-Za-z0-9_-].
+function headingId(text: string): string {
+  return text
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^A-Za-z0-9_-]/g, "");
+}
+
+function plainText(block: Block): string {
+  return (block.children || []).map((c) => c.text || "").join("");
+}
+
 function renderSpan(span: Span, markDefs: MarkDef[] = []): string {
   if (!span.text && span.text !== "") return "";
   let html = escapeHtml(span.text || "");
@@ -211,10 +225,15 @@ function renderBlocks(blocks: Block[]): string {
     }
 
     switch (style) {
-      case "h1": result.push(`<h1>${inner}</h1>`); break;
-      case "h2": result.push(`<h2>${inner}</h2>`); break;
-      case "h3": result.push(`<h3>${inner}</h3>`); break;
-      case "h4": result.push(`<h4>${inner}</h4>`); break;
+      case "h1":
+      case "h2":
+      case "h3":
+      case "h4": {
+        const id = headingId(plainText(block));
+        const idAttr = id ? ` id="${escapeHtml(id)}"` : "";
+        result.push(`<${style}${idAttr}>${inner}</${style}>`);
+        break;
+      }
       case "blockquote": result.push(`<blockquote><p>${inner}</p></blockquote>`); break;
       default: result.push(`<p>${inner}</p>`); break;
     }

@@ -1,22 +1,73 @@
 ---
 import Base from "../layouts/Base.astro";
 import PortableText from "@site/PortableText.astro";
-import { getPages, getHomePage } from "@site/snapshot";
+import AuthorBio from "../components/AuthorBio.astro";
+import { getPages, getPosts, getHomePage } from "@site/snapshot";
 
 export function getStaticPaths() {
   const reserved = new Set(["home", "blog", "posts", "articles"]);
   const homeSlug = getHomePage()?.slug;
   if (homeSlug) reserved.add(homeSlug);
-  return getPages().filter((p) => !reserved.has(p.slug)).map((p) => ({ params: { slug: p.slug }, props: { page: p } }));
+
+  const pagePaths = getPages()
+    .filter((p) => !reserved.has(p.slug))
+    .map((p) => ({ params: { slug: p.slug }, props: { kind: "page" as const, page: p } }));
+
+  // Also render posts at root-level URLs (/<slug>) so WordPress-style permalinks
+  // keep working alongside /posts/<slug>. No redirect — both URLs render the
+  // same post page. Pages win on slug collisions.
+  const pageSlugs = new Set(pagePaths.map((p) => p.params.slug));
+  const postPaths = getPosts()
+    .filter((p) => !reserved.has(p.slug) && !pageSlugs.has(p.slug))
+    .map((p) => ({ params: { slug: p.slug }, props: { kind: "post" as const, post: p } }));
+
+  return [...pagePaths, ...postPaths];
 }
-const { page } = Astro.props;
+const props = Astro.props as
+  | { kind: "page"; page: ReturnType<typeof getPages>[number] }
+  | { kind: "post"; post: ReturnType<typeof getPosts>[number] };
 ---
-<Base title={page.title} description={page.excerpt} ogImage={page.featuredImage?.src}>
-  <div class="container section">
-    <article class="prose">
-      <h1>{page.title}</h1>
-      {page.featuredImage?.src && <figure class="content-image"><img src={page.featuredImage.src} alt={page.featuredImage.alt || page.title} width="760" height="475" loading="eager" decoding="async" fetchpriority="high" sizes="(max-width: 640px) 100vw, 760px" /></figure>}
-      <PortableText value={page.content} />
-    </article>
-  </div>
-</Base>
+{props.kind === "page" ? (
+  <Base title={props.page.title} description={props.page.excerpt} ogImage={props.page.featuredImage?.src}>
+    <div class="container section">
+      <article class="prose">
+        <h1>{props.page.title}</h1>
+        {props.page.featuredImage?.src && <figure class="content-image"><img src={props.page.featuredImage.src} alt={props.page.featuredImage.alt || props.page.title} width="760" height="475" loading="eager" decoding="async" fetchpriority="high" sizes="(max-width: 640px) 100vw, 760px" /></figure>}
+        <PortableText value={props.page.content} />
+      </article>
+    </div>
+  </Base>
+) : (
+  <Base title={props.post.title} description={props.post.excerpt} ogImage={props.post.featuredImage?.src} ogType="article" publishedAt={props.post.publishedAt} updatedAt={props.post.updatedAt}>
+    <div class="container section">
+      <div class="layout-with-sidebar">
+        <article class="prose">
+          <nav class="breadcrumbs">
+            <a href="/">Home</a>
+            <span class="breadcrumb-sep">/</span>
+            <a href="/posts">Articles</a>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-current">{props.post.title}</span>
+          </nav>
+          <div class="article-header">
+            <h1>{props.post.title}</h1>
+            <div class="article-meta">
+              {props.post.categories[0] && <a href={`/category/${props.post.categories[0].slug}`} class="article-category">{props.post.categories[0].label}</a>}
+              {props.post.publishedAt && <time datetime={props.post.publishedAt}>{new Date(props.post.publishedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</time>}
+              <span>{props.post.readingTime} min read</span>
+              {props.post.bylines[0]?.displayName && <span>By {props.post.bylines[0].displayName}</span>}
+            </div>
+            {props.post.excerpt && <p class="article-lead">{props.post.excerpt}</p>}
+          </div>
+          {props.post.featuredImage?.src && (
+            <figure class="content-image">
+              <img src={props.post.featuredImage.src} alt={props.post.featuredImage.alt || props.post.title} width="760" height="475" loading="eager" decoding="async" fetchpriority="high" sizes="(max-width: 640px) 100vw, 760px" />
+            </figure>
+          )}
+          <PortableText value={props.post.content} />
+        </article>
+        <AuthorBio />
+      </div>
+    </div>
+  </Base>
+)}

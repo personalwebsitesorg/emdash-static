@@ -51,7 +51,9 @@ async function main() {
 
 	const theme = process.env.THEME || await ask("Theme (" + availableThemes.join("/") + "): ", availableThemes[0]);
 
-	const config = { apiToken, accountId, siteName, theme, d1Id: "", r2PublicUrl: "", subdomain: "", triggerUrl: "" };
+	const ROOT_DOMAIN = "personalwebsite.net";
+
+	const config = { apiToken, accountId, siteName, theme, d1Id: "", r2PublicUrl: "", subdomain: "", triggerUrl: "", cmsCustomDomain: "", staticCustomDomain: "" };
 
 	// Get workers subdomain
 	try {
@@ -108,6 +110,31 @@ async function main() {
 	} else {
 		console.log("         cms/ already exists, skipping");
 	}
+
+	// Resolve the current npm latest for emdash-family deps and pin each one
+	// exactly, so new sites don't inherit the template's pre-1.0 caret ranges
+	// (e.g. ^0.4.0 locks to 0.4.x and skips 0.5.0+) and future pnpm installs
+	// don't silently move the version either.
+	try {
+		const pkgPath = "cms/package.json";
+		const pkgJson = JSON.parse(readFileSync(pkgPath, "utf8"));
+		const latestNames = ["emdash", "@emdash-cms/cloudflare", "@emdash-cms/plugin-forms", "@emdash-cms/plugin-webhook-notifier"];
+		let changed = false;
+		for (const name of latestNames) {
+			if (!pkgJson.dependencies?.[name]) continue;
+			try {
+				const v = execSync("npm view " + name + " version", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+				if (v && pkgJson.dependencies[name] !== v) {
+					pkgJson.dependencies[name] = v;
+					changed = true;
+					console.log("         " + name + " → " + v);
+				}
+			} catch {}
+		}
+		if (changed) {
+			writeFileSync(pkgPath, JSON.stringify(pkgJson, null, "\t") + "\n");
+		}
+	} catch {}
 
 	// ── Step 2: Add plugins ──
 	console.log("  [2/7] Adding R2 export + deploy hook...");
@@ -189,6 +216,12 @@ async function main() {
 		process.exit(1);
 	}
 
+	// Attach custom domain: admin.<site>.personalwebsite.net
+	const cmsHostname = "admin." + siteName + "." + ROOT_DOMAIN;
+	if (await attachCustomDomain(accountId, apiToken, ROOT_DOMAIN, cmsHostname, siteName + "-cms")) {
+		config.cmsCustomDomain = cmsHostname;
+	}
+
 	// ── Step 6: Deploy static (placeholder) ──
 	console.log("\n  [6/7] Deploying static worker...\n");
 	const distDir = join(resolve("static"), "dist");
@@ -210,6 +243,12 @@ async function main() {
 	} catch {
 		console.error("\n  Static deploy failed.");
 		process.exit(1);
+	}
+
+	// Attach custom domain: <site>.personalwebsite.net
+	const staticHostname = siteName + "." + ROOT_DOMAIN;
+	if (await attachCustomDomain(accountId, apiToken, ROOT_DOMAIN, staticHostname, siteName + "-static")) {
+		config.staticCustomDomain = staticHostname;
 	}
 
 	// ── Step 7: Connect Workers Builds + write deploy hook to D1 ──
@@ -346,17 +385,26 @@ async function main() {
 	writeFileSync(CONFIG_FILE, JSON.stringify(config, null, "\t") + "\n");
 
 	// ── Done ──
-	const cmsUrl = "https://" + siteName + "-cms." + config.subdomain + ".workers.dev";
-	const staticUrl = "https://" + siteName + "-static." + config.subdomain + ".workers.dev";
+	const cmsWorkersDev = "https://" + siteName + "-cms." + config.subdomain + ".workers.dev";
+	const staticWorkersDev = "https://" + siteName + "-static." + config.subdomain + ".workers.dev";
+	const cmsCustom = config.cmsCustomDomain ? "https://" + config.cmsCustomDomain : "";
+	const staticCustom = config.staticCustomDomain ? "https://" + config.staticCustomDomain : "";
+	const cmsPrimary = cmsCustom || cmsWorkersDev;
 
 	console.log("\n  ════════════════════════════════════════════════");
 	console.log("  Done! Both workers deployed.");
 	console.log("  ════════════════════════════════════════════════");
 	console.log("");
-	console.log("  CMS admin:   " + cmsUrl + "/_emdash/admin");
-	console.log("  R2 export:   " + cmsUrl + "/_emdash/export");
-	console.log("  Deploy page: " + cmsUrl + "/_emdash/admin → Plugins → Deploy");
-	console.log("  Static site: " + staticUrl);
+	console.log("  CMS admin:");
+	if (cmsCustom) console.log("    " + cmsCustom + "/_emdash/admin");
+	console.log("    " + cmsWorkersDev + "/_emdash/admin");
+	console.log("");
+	console.log("  R2 export:   " + cmsPrimary + "/_emdash/export");
+	console.log("  Deploy page: " + cmsPrimary + "/_emdash/admin → Plugins → Deploy");
+	console.log("");
+	console.log("  Static site:");
+	if (staticCustom) console.log("    " + staticCustom);
+	console.log("    " + staticWorkersDev);
 	console.log("");
 	console.log("  Workflow:");
 	console.log("  1. Add content in CMS admin");
@@ -513,6 +561,31 @@ async function fetchAccountId(token) {
 		const res = await cf("/accounts?per_page=1", token);
 		return res.result?.[0]?.id || "";
 	} catch { return ""; }
+}
+
+async function attachCustomDomain(accountId, token, rootDomain, hostname, service) {
+	var zoneId = "";
+	try {
+		const res = await cf("/zones?name=" + rootDomain, token);
+		zoneId = res.result?.[0]?.id || "";
+	} catch {}
+	if (!zoneId) {
+		console.log("         " + rootDomain + " not in account — skipping " + hostname);
+		return false;
+	}
+	try {
+		await cf("/accounts/" + accountId + "/workers/domains", token, "PUT", {
+			zone_id: zoneId,
+			hostname: hostname,
+			service: service,
+			environment: "production",
+		});
+		console.log("         Custom domain: https://" + hostname);
+		return true;
+	} catch (err) {
+		console.log("         Custom domain " + hostname + ": " + err.message);
+		return false;
+	}
 }
 
 function ask(q, def) {
