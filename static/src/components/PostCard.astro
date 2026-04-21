@@ -19,7 +19,7 @@ const dateStr = post.publishedAt
 const category = post.categories[0];
 ---
 
-<article class="post-card" data-href={`/posts/${post.slug}`}>
+<article class="post-card" data-href={`/${post.slug}`}>
   <div class="post-card__image-wrap">
     {post.featuredImage?.src ? (
       <img
@@ -51,14 +51,14 @@ const category = post.categories[0];
     </div>
 
     <h3 class="post-card__title">
-      <a href={`/posts/${post.slug}`}>{post.title}</a>
+      <a href={`/${post.slug}`}>{post.title}</a>
     </h3>
 
     {post.excerpt && (
       <p class="post-card__excerpt">{post.excerpt}</p>
     )}
 
-    <a class="post-card__readmore" href={`/posts/${post.slug}`}>
+    <a class="post-card__readmore" href={`/${post.slug}`}>
       Read more &rarr;
     </a>
   </div>

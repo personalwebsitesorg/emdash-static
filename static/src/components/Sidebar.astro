@@ -30,7 +30,7 @@ const { recentPosts, categories, tags } = Astro.props;
       {recentPosts.map((post) => (
         <div class="sidebar-recent-item">
           <div class="sidebar-recent-title">
-            <a href={`/posts/${post.slug}`}>{post.title}</a>
+            <a href={`/${post.slug}`}>{post.title}</a>
           </div>
           {post.publishedAt && (
             <div class="sidebar-recent-date">

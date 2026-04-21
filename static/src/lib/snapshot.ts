@@ -540,7 +540,7 @@ function resolveMenuItemUrl(item: any): string | null {
   // "content"; the WP-import script writes "page"/"post").
   if (item.reference_collection === "posts") {
     const post = getPosts().find((p) => p.id === item.reference_id);
-    return post ? `/posts/${post.slug}` : null;
+    return post ? `/${post.slug}` : null;
   }
   if (item.reference_collection === "pages") {
     const page = getPages().find((p) => p.id === item.reference_id);
@@ -807,7 +807,7 @@ export function generateRssFeed(siteUrl: string): string {
   const settings = getSiteSettings();
   const posts = getPosts().slice(0, 20);
   const items = posts.map((p) => {
-    const link = `${siteUrl}/posts/${p.slug}`;
+    const link = `${siteUrl}/${p.slug}`;
     const pubDate = p.publishedAt ? new Date(p.publishedAt).toUTCString() : "";
     return `    <item>
     <title><![CDATA[${p.title}]]></title>

@@ -151,7 +151,7 @@ const activePath = currentPath || Astro.url.pathname;
         <div class="footer-heading">Recent Posts</div>
         {recentPosts.map((post) => (
           <div class="footer-recent-item">
-            <div class="footer-recent-title"><a href={`/posts/${post.slug}`}>{post.title}</a></div>
+            <div class="footer-recent-title"><a href={`/${post.slug}`}>{post.title}</a></div>
           </div>
         ))}
       </div>
@@ -159,7 +159,7 @@ const activePath = currentPath || Astro.url.pathname;
         <div class="footer-heading">Best Posts</div>
         {bestPosts.map((post) => (
           <div class="footer-recent-item">
-            <div class="footer-recent-title"><a href={`/posts/${post.slug}`}>{post.title}</a></div>
+            <div class="footer-recent-title"><a href={`/${post.slug}`}>{post.title}</a></div>
           </div>
         ))}
       </div>
