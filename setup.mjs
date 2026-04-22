@@ -406,6 +406,26 @@ async function main() {
 		console.log("         Could not find static worker tag — configure Workers Builds manually");
 	}
 
+	// Pin canonical site URL in D1 so invite/magic-link emails always use
+	// the custom domain — regardless of which URL the user first opened
+	// the setup wizard with. Runs even if Workers Builds wiring failed.
+	if (config.d1Id) {
+		try {
+			const canonicalUrl = config.cmsCustomDomain
+				? "https://" + config.cmsCustomDomain
+				: "https://" + siteName + "-cms." + config.subdomain + ".workers.dev";
+			await cf("/accounts/" + accountId + "/d1/database/" + config.d1Id + "/query", apiToken, "POST", {
+				sql: 'CREATE TABLE IF NOT EXISTS "options" ("name" text primary key, "value" text not null)',
+			});
+			await cf("/accounts/" + accountId + "/d1/database/" + config.d1Id + "/query", apiToken, "POST", {
+				sql: "INSERT OR REPLACE INTO options (name, value) VALUES ('emdash:site_url', '" + JSON.stringify(canonicalUrl) + "')",
+			});
+			console.log("         Site URL pinned: " + canonicalUrl);
+		} catch (err) {
+			console.log("         Could not pin emdash:site_url: " + err.message);
+		}
+	}
+
 	// Save final config
 	writeFileSync(CONFIG_FILE, JSON.stringify(config, null, "\t") + "\n");
 
