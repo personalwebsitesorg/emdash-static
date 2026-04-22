@@ -8,7 +8,7 @@ var FALLBACK_THEMES = [
 	{ label: "Bold", value: "bold" },
 ];
 
-var GITHUB_THEMES_URL = "https://api.github.com/repos/personalwebsitesorg/emdash-static/contents/static/src/themes";
+var GITHUB_THEMES_URL = "https://api.github.com/repos/personalwebsitesorg/emdash-themes/contents/";
 
 async function fetchThemes(ctx: PluginContext) {
 	if (!ctx.http) return FALLBACK_THEMES;

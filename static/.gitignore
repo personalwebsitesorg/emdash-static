@@ -5,3 +5,4 @@ generated/
 public/fonts/
 .wrangler/
 .tmp-*/
+src/themes/

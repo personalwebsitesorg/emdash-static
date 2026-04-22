@@ -37,16 +37,21 @@ async function main() {
 
 	const siteName = (process.env.SITE_NAME || await ask("Site name: ", "my-site")).toLowerCase();
 
-	// Read available themes from local static/src/themes directory
+	// Fetch available themes from the emdash-themes repo
 	var availableThemes = [];
-	if (existsSync("static/src/themes")) {
-		var themeEntries = readdirSync("static/src/themes", { withFileTypes: true });
-		for (var i = 0; i < themeEntries.length; i++) {
-			if (themeEntries[i].isDirectory() && themeEntries[i].name !== "shared") {
-				availableThemes.push(themeEntries[i].name);
+	try {
+		const res = await fetch("https://api.github.com/repos/personalwebsitesorg/emdash-themes/contents/", {
+			headers: { "Accept": "application/vnd.github.v3+json", "User-Agent": "emdash-static-setup" },
+		});
+		if (res.ok) {
+			const items = await res.json();
+			for (var i = 0; i < items.length; i++) {
+				if (items[i].type === "dir" && items[i].name !== "shared") {
+					availableThemes.push(items[i].name);
+				}
 			}
 		}
-	}
+	} catch {}
 	if (availableThemes.length === 0) availableThemes = ["professional", "editorial", "minimal", "bold"];
 
 	const theme = process.env.THEME || await ask("Theme (" + availableThemes.join("/") + "): ", availableThemes[0]);
