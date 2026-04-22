@@ -26,8 +26,12 @@ function raw(path) {
 	return "https://raw.githubusercontent.com/" + REPO + "/" + BRANCH + "/" + path;
 }
 
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "";
+
 async function download(url) {
-	const res = await fetch(url);
+	const headers = { "User-Agent": "emdash-static-build" };
+	if (GITHUB_TOKEN) headers.Authorization = "Bearer " + GITHUB_TOKEN;
+	const res = await fetch(url, { headers });
 	if (!res.ok) throw new Error("HTTP " + res.status + " for " + url);
 	return await res.text();
 }

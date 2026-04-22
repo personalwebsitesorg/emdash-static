@@ -13,9 +13,14 @@ var GITHUB_THEMES_URL = "https://api.github.com/repos/personalwebsitesorg/emdash
 async function fetchThemes(ctx: PluginContext) {
 	if (!ctx.http) return FALLBACK_THEMES;
 	try {
-		var res = await ctx.http.fetch(GITHUB_THEMES_URL, {
-			headers: { "Accept": "application/vnd.github.v3+json", "User-Agent": "emdash-static" },
-		});
+		var ghToken = "";
+		try { ghToken = (await ctx.kv.get("settings:githubToken")) || ""; } catch (_e) {}
+		var headers: Record<string, string> = {
+			"Accept": "application/vnd.github.v3+json",
+			"User-Agent": "emdash-static",
+		};
+		if (ghToken) headers["Authorization"] = "Bearer " + ghToken;
+		var res = await ctx.http.fetch(GITHUB_THEMES_URL, { headers: headers });
 		if (!res.ok) return FALLBACK_THEMES;
 		var items = (await res.json()) as any[];
 		var themes: { label: string; value: string }[] = [];

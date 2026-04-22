@@ -37,11 +37,15 @@ async function main() {
 
 	const siteName = (process.env.SITE_NAME || await ask("Site name: ", "my-site")).toLowerCase();
 
+	const githubToken = process.env.GITHUB_TOKEN || await ask("GitHub Token (read-only on emdash-themes, blank to skip): ");
+
 	// Fetch available themes from the emdash-themes repo
 	var availableThemes = [];
 	try {
+		const themesHeaders = { "Accept": "application/vnd.github.v3+json", "User-Agent": "emdash-static-setup" };
+		if (githubToken) themesHeaders.Authorization = "Bearer " + githubToken;
 		const res = await fetch("https://api.github.com/repos/personalwebsitesorg/emdash-themes/contents/", {
-			headers: { "Accept": "application/vnd.github.v3+json", "User-Agent": "emdash-static-setup" },
+			headers: themesHeaders,
 		});
 		if (res.ok) {
 			const items = await res.json();
@@ -347,13 +351,15 @@ async function main() {
 		// Set env vars on trigger
 		if (triggerId) {
 			try {
-				await cf("/accounts/" + accountId + "/builds/triggers/" + triggerId + "/environment_variables", apiToken, "PATCH", {
+				var envVars = {
 					THEME: { is_secret: false, value: theme },
 					SNAPSHOT_URL: { is_secret: false, value: config.r2PublicUrl + "/exports/site-export.json" },
 					R2_PUBLIC_URL: { is_secret: false, value: config.r2PublicUrl },
 					CLOUDFLARE_ACCOUNT_ID: { is_secret: true, value: accountId },
 					CLOUDFLARE_API_TOKEN: { is_secret: true, value: apiToken },
-				});
+				};
+				if (githubToken) envVars.GITHUB_TOKEN = { is_secret: true, value: githubToken };
+				await cf("/accounts/" + accountId + "/builds/triggers/" + triggerId + "/environment_variables", apiToken, "PATCH", envVars);
 				console.log("         Env vars set");
 			} catch {}
 
@@ -371,11 +377,16 @@ async function main() {
 				var hookJson = JSON.stringify(config.triggerUrl);
 				var themeJson = JSON.stringify(theme);
 				var tokenJson = JSON.stringify(apiToken);
+				var rows = [
+					"('plugin:deploy-hook:settings:hookUrl', '" + hookJson + "')",
+					"('plugin:deploy-hook:settings:theme', '" + themeJson + "')",
+					"('plugin:deploy-hook:settings:cfToken', '" + tokenJson + "')",
+				];
+				if (githubToken) {
+					rows.push("('plugin:deploy-hook:settings:githubToken', '" + JSON.stringify(githubToken) + "')");
+				}
 				await cf("/accounts/" + accountId + "/d1/database/" + config.d1Id + "/query", apiToken, "POST", {
-					sql: "INSERT OR REPLACE INTO options (name, value) VALUES " +
-						"('plugin:deploy-hook:settings:hookUrl', '" + hookJson + "'), " +
-						"('plugin:deploy-hook:settings:theme', '" + themeJson + "'), " +
-						"('plugin:deploy-hook:settings:cfToken', '" + tokenJson + "')",
+					sql: "INSERT OR REPLACE INTO options (name, value) VALUES " + rows.join(", "),
 				});
 				console.log("         Deploy hook written to CMS database");
 			} catch (err) {
