@@ -168,6 +168,15 @@ async function main() {
 
 	// Rewrite astro.config.mjs
 	writeAstroConfig();
+
+	// Replace root page with a redirect to the admin UI.
+	// Hitting https://edit.<site>.personalwebsite.net/ should land on
+	// /_emdash/admin, which the framework middleware then routes to
+	// /login (signed out) or /setup (first run).
+	mkdirSync("cms/src/pages", { recursive: true });
+	writeFileSync("cms/src/pages/index.astro",
+		"---\nreturn Astro.redirect(\"/_emdash/admin\", 302);\n---\n");
+
 	console.log("         Done");
 
 	// ── Step 3: Create Cloudflare resources ──
@@ -225,8 +234,8 @@ async function main() {
 		process.exit(1);
 	}
 
-	// Attach custom domain: admin.<site>.personalwebsite.net
-	const cmsHostname = "admin." + siteName + "." + ROOT_DOMAIN;
+	// Attach custom domain: edit.<site>.personalwebsite.net
+	const cmsHostname = "edit." + siteName + "." + ROOT_DOMAIN;
 	if (await attachCustomDomain(accountId, apiToken, ROOT_DOMAIN, cmsHostname, siteName + "-cms")) {
 		config.cmsCustomDomain = cmsHostname;
 	}
