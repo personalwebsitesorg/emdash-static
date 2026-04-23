@@ -166,6 +166,12 @@ async function main() {
 	cpSync("plugins/resend/index.ts", "cms/src/plugins/resend/index.ts");
 	cpSync("plugins/resend/sandbox-entry.ts", "cms/src/plugins/resend/sandbox-entry.ts");
 
+	// Copy admin-inject Astro integration (adds a floating "Export to R2"
+	// button to /_emdash/admin/* pages — pluggable alternative to forking the
+	// emdash admin bundle).
+	mkdirSync("cms/src/plugins/admin-inject", { recursive: true });
+	cpSync("plugins/admin-inject/index.ts", "cms/src/plugins/admin-inject/index.ts");
+
 	// Rewrite astro.config.mjs
 	writeAstroConfig();
 
@@ -498,6 +504,7 @@ function writeAstroConfig() {
 		config = config.replace(anchor1, anchor1 + "\n" +
 			'import { deployHookPlugin } from "./src/plugins/deploy-hook/index.ts";\n' +
 			'import { emdashResend } from "./src/plugins/resend/index.ts";\n' +
+			'import { adminInject } from "./src/plugins/admin-inject/index.ts";\n' +
 			'import { staticExport } from "emdash-static-export";');
 	} else {
 		errors.push("Could not find emdash import");
@@ -533,7 +540,7 @@ function writeAstroConfig() {
 	//    staticExport() after the emdash() integration closes.
 	var anchor4 = "marketplace: \"https://marketplace.emdashcms.com\",\n\t\t}),";
 	if (config.indexOf(anchor4) !== -1) {
-		config = config.replace(anchor4, "}),\n\t\tstaticExport(),");
+		config = config.replace(anchor4, "}),\n\t\tstaticExport(),\n\t\tadminInject(),");
 	} else {
 		errors.push("Could not find emdash closing to add staticExport");
 	}

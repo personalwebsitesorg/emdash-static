@@ -221,6 +221,10 @@ function injectLocalPieces(workDir) {
 		cpSync(resolve(SCRIPT_DIR, "plugins", plugin, "sandbox-entry.ts"), resolve(cmsDir, "src/plugins", plugin, "sandbox-entry.ts"));
 	}
 
+	// Copy admin-inject Astro integration (no sandbox-entry)
+	mkdirSync(resolve(cmsDir, "src/plugins/admin-inject"), { recursive: true });
+	cpSync(resolve(SCRIPT_DIR, "plugins/admin-inject/index.ts"), resolve(cmsDir, "src/plugins/admin-inject/index.ts"));
+
 	// Root redirect
 	mkdirSync(resolve(cmsDir, "src/pages"), { recursive: true });
 	writeFileSync(
@@ -239,6 +243,7 @@ function injectLocalPieces(workDir) {
 			anchor1 + "\n" +
 				'import { deployHookPlugin } from "./src/plugins/deploy-hook/index.ts";\n' +
 				'import { emdashResend } from "./src/plugins/resend/index.ts";\n' +
+				'import { adminInject } from "./src/plugins/admin-inject/index.ts";\n' +
 				'import { staticExport } from "emdash-static-export";',
 		);
 	}
@@ -269,7 +274,7 @@ function injectLocalPieces(workDir) {
 	// and inject staticExport() after the emdash() integration closes.
 	const anchor4 = "marketplace: \"https://marketplace.emdashcms.com\",\n\t\t}),";
 	if (config.includes(anchor4)) {
-		config = config.replace(anchor4, "}),\n\t\tstaticExport(),");
+		config = config.replace(anchor4, "}),\n\t\tstaticExport(),\n\t\tadminInject(),");
 	}
 
 	writeFileSync(astroPath, config);
