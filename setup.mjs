@@ -528,10 +528,12 @@ function writeAstroConfig() {
 		errors.push("Could not find plugins array");
 	}
 
-	// 4. Add staticExport() after emdash closing inside integrations
+	// 4. Remove the marketplace config (hides the Themes + Marketplace sidebar
+	//    items — they rely on manifest.marketplace being truthy) and add
+	//    staticExport() after the emdash() integration closes.
 	var anchor4 = "marketplace: \"https://marketplace.emdashcms.com\",\n\t\t}),";
 	if (config.indexOf(anchor4) !== -1) {
-		config = config.replace(anchor4, anchor4 + "\n\t\tstaticExport(),");
+		config = config.replace(anchor4, "}),\n\t\tstaticExport(),");
 	} else {
 		errors.push("Could not find emdash closing to add staticExport");
 	}
