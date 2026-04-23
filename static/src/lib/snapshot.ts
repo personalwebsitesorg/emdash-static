@@ -525,10 +525,20 @@ export function getPostBySlug(slug: string): Post | undefined {
   return _postsBySlug!.get(slug);
 }
 
-/** Normalize CMS page URLs: /pages/about → /about */
+/** Normalize CMS page URLs: /pages/about → /about, /posts → /blog */
 function normalizeMenuUrl(url: string): string {
   if (url.startsWith("/pages/")) {
     return "/" + url.slice("/pages/".length);
+  }
+  // WordPress imports often produce /posts links (the old archive URL).
+  // Rewrite to /blog so the nav lands on the listing directly with no
+  // redirect hop. Keeps the /posts → /blog 301 as a safety net for any
+  // external backlinks that still reference the old URL.
+  if (url === "/posts" || url === "/posts/") {
+    return "/blog";
+  }
+  if (url.startsWith("/posts/")) {
+    return "/blog/" + url.slice("/posts/".length);
   }
   return url;
 }
