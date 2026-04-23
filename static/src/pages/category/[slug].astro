@@ -17,7 +17,7 @@ const tags = getAllTags();
   <div class="container section">
     <div class="section-heading"><h1>{category.label}</h1><p>{posts.length} article{posts.length !== 1 ? "s" : ""}</p></div>
     <div class="filter-bar">
-      <a href="/posts" class="filter-chip">All</a>
+      <a href="/blog" class="filter-chip">All</a>
       {categories.map((cat) => <a href={`/category/${cat.slug}`} class:list={["filter-chip", { active: cat.slug === category.slug }]}>{cat.label}</a>)}
     </div>
     <div class="layout-with-sidebar">

@@ -13,8 +13,8 @@ export function getStaticPaths() {
     .filter((p) => !reserved.has(p.slug))
     .map((p) => ({ params: { slug: p.slug }, props: { kind: "page" as const, page: p } }));
 
-  // Render posts at root-level URLs (/<slug>). The /posts index is the archive;
-  // individual posts do not live under /posts/<slug>. Pages win on slug collisions.
+  // Render posts at root-level URLs (/<slug>). The /blog index is the archive;
+  // individual posts do not live under /blog/<slug>. Pages win on slug collisions.
   const pageSlugs = new Set(pagePaths.map((p) => p.params.slug));
   const postPaths = getPosts()
     .filter((p) => !reserved.has(p.slug) && !pageSlugs.has(p.slug))
@@ -44,7 +44,7 @@ const props = Astro.props as
           <nav class="breadcrumbs">
             <a href="/">Home</a>
             <span class="breadcrumb-sep">/</span>
-            <a href="/posts">Articles</a>
+            <a href="/blog">Articles</a>
             <span class="breadcrumb-sep">/</span>
             <span class="breadcrumb-current">{props.post.title}</span>
           </nav>

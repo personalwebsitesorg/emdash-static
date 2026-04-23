@@ -10,7 +10,7 @@ export const GET: APIRoute = ({ site }) => {
   const reserved = new Set(["home", "blog", "posts", "articles"]);
   const urls = [
     { loc: base, priority: "1.0" },
-    { loc: `${base}/posts`, priority: "0.9" },
+    { loc: `${base}/blog`, priority: "0.9" },
     ...getPages().filter((p) => !reserved.has(p.slug)).map((p) => ({ loc: `${base}/${p.slug}`, lastmod: p.updatedAt || p.publishedAt, priority: "0.7" })),
     ...getPosts().map((p) => ({ loc: `${base}/${p.slug}`, lastmod: p.updatedAt || p.publishedAt, priority: "0.8" })),
     ...getAllCategories().map((c) => ({ loc: `${base}/category/${c.slug}`, priority: "0.6" })),

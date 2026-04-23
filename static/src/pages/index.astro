@@ -82,7 +82,7 @@ const homePage = getHomepage() ?? getHomePage();
   <div class="container">
     {categories.length > 0 && (
       <div class="category-bar">
-        <a class="category-chip category-chip--active" href="/posts">All</a>
+        <a class="category-chip category-chip--active" href="/blog">All</a>
         {categories.map((cat) => (
           <a class="category-chip" href={`/category/${cat.slug}`}>{cat.label}</a>
         ))}
@@ -92,7 +92,7 @@ const homePage = getHomepage() ?? getHomePage();
     <div class="section-header">
       <h2 class="section-title">Recent articles <span class="section-count">({posts.length})</span></h2>
       {posts.length > 6 && (
-        <a class="section-link" href="/posts">
+        <a class="section-link" href="/blog">
           View all <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6,3 11,8 6,13" /></svg>
         </a>
       )}

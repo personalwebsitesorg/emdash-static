@@ -1,3 +1,31 @@
 ---
-return Astro.redirect('/posts', 301);
+import Base from "../../layouts/Base.astro";
+import PostCard from "../../components/PostCard.astro";
+import { getPosts, getAllCategories, getSiteSettings } from "@site/snapshot";
+
+const posts = getPosts();
+const categories = getAllCategories();
+const settings = getSiteSettings();
 ---
+
+<Base title="Articles" description={settings.tagline || "Browse all articles"} currentPath="/blog">
+  <div class="container">
+    <h1 class="page-title">Articles <span class="section-count">({posts.length})</span></h1>
+    {settings.tagline && <p class="page-subtitle">{settings.tagline}</p>}
+
+    {categories.length > 0 && (
+      <div class="category-bar">
+        <a class="category-chip category-chip--active" href="/blog">All</a>
+        {categories.map((cat) => (
+          <a class="category-chip" href={`/category/${cat.slug}`}>{cat.label}</a>
+        ))}
+      </div>
+    )}
+
+    <div class="post-grid post-grid--2col">
+      {posts.map((post, i) => (
+        <PostCard post={post} eager={i < 2} />
+      ))}
+    </div>
+  </div>
+</Base>
